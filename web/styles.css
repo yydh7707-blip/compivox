@@ -103,9 +103,7 @@ html::before {
 }
 .intro-mark { width: 88px; height: 88px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px rgba(176, 110, 48, 0.25); }
 .intro-name { letter-spacing: 0.5em; font-size: 22px; font-weight: 600; padding-left: 0.5em; }
-.intro-line { width: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: introLine 1s var(--ease) 1.6s forwards; }
 @keyframes introIn { to { opacity: 1; transform: scale(1); filter: blur(0); } }
-@keyframes introLine { to { width: 180px; } }
 @keyframes introOut { to { opacity: 0; visibility: hidden; } }
 
 .topbar {
