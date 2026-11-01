@@ -7,24 +7,12 @@
   <meta name="description" content="COMPIVOX turns your development projects into Windows applications." />
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="styles.css" />
-  <script>
-    (function () {
-      var root = document.documentElement;
-      var seen = false, reduce = false;
-      try {
-        seen = sessionStorage.getItem("compivox-intro-seen") === "1";
-        reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      } catch (_) {}
-      if (seen || reduce) {
-        root.classList.add("intro-done");
-      } else {
-        root.classList.add("intro-run");
-        try { sessionStorage.setItem("compivox-intro-seen", "1"); } catch (_) {}
-      }
-    })();
-  </script>
+  <script src="boot.js"></script>
 </head>
 <body>
+  <div class="intro-overlay" id="intro-overlay" aria-hidden="true">
+    <div class="intro-logo"><div class="intro-mark">C</div><div class="intro-name">COMPIVOX</div><div class="intro-line"></div></div>
+  </div>
   <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 
   <header class="topbar">
@@ -37,8 +25,10 @@
       <a href="#how" data-i18n="nav.how">How it works</a>
       <a href="#support" data-i18n="nav.support">Support</a>
       <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#security" data-i18n="nav.security">Security</a>
       <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
       <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <a class="signin" href="/account" data-i18n="nav.account">Sign in</a>
     </nav>
     <div class="lang" role="group" aria-label="Language">
       <button type="button" data-lang-btn="ko">KO</button>
@@ -49,12 +39,12 @@
   <main id="main">
     <section class="hero" id="top">
       <p class="eyebrow reveal" data-i18n="hero.eyebrow">Windows project build tool</p>
-      <h1 class="hero-title" aria-label="Your Projects. Ready to Run.">
-        <span class="word" style="--i:0" data-i18n="hero.w1">Your</span>
-        <span class="word" style="--i:1" data-i18n="hero.w2">Projects.</span>
-        <span class="word accent" style="--i:2" data-i18n="hero.w3">Ready to Run.</span>
+      <h1 class="hero-title" aria-label="Build beyond limits.">
+        <span class="word" style="--i:0" data-i18n="hero.w1">Build</span>
+        <span class="word" style="--i:1" data-i18n="hero.w2">beyond</span>
+        <span class="word accent" style="--i:2" data-i18n="hero.w3">limits.</span>
       </h1>
-      <p class="hero-desc reveal" data-i18n="hero.desc">Turn your development projects into Windows applications with a streamlined building and packaging experience.</p>
+      <p class="hero-desc reveal" data-i18n="hero.desc">Transform your development projects into Windows applications with a streamlined build and packaging experience.</p>
       <div class="hero-actions reveal">
         <a class="btn primary" href="#download" data-i18n="hero.download">Download COMPIVOX</a>
         <a class="btn ghost" href="#how" data-i18n="hero.explore">Explore Features</a>
@@ -112,6 +102,18 @@
       </div>
     </section>
 
+    <section class="section" id="security">
+      <p class="section-label" data-i18n="sec.label">Accounts &amp; security</p>
+      <h2 data-i18n="sec.title">One account for the website and the app</h2>
+      <p class="lead" data-i18n="sec.body">Sign in to COMPIVOX on the web or in the Windows app with the same account. Every permission check happens on our server.</p>
+      <div class="sec-grid">
+        <div class="card"><h3 data-i18n="sec.1.t">Email verification</h3><p data-i18n="sec.1.d">New accounts must confirm a 6-digit code sent to their email before they can use COMPIVOX.</p></div>
+        <div class="card"><h3 data-i18n="sec.2.t">Cloudflare Turnstile</h3><p data-i18n="sec.2.d">Turnstile is used to reduce automated requests on sign-up, sign-in and other sensitive actions.</p></div>
+        <div class="card"><h3 data-i18n="sec.3.t">IP and network checks</h3><p data-i18n="sec.3.d">Your IP address is used for access security, network risk assessment and device registration limits. It is an extra check, not proof of identity.</p></div>
+        <div class="card"><h3 data-i18n="sec.4.t">Device management</h3><p data-i18n="sec.4.d">Each installation gets a random Device ID. You can see and remove your devices from your dashboard.</p></div>
+      </div>
+    </section>
+
     <section class="section" id="pricing">
       <p class="section-label" data-i18n="price.label">Pricing</p>
       <h2 data-i18n="price.title">FREE and PRO</h2>
@@ -159,12 +161,13 @@
       <div>
         <h4 data-i18n="foot.links">Links</h4>
         <a href="#download" data-i18n="foot.download">Download</a>
+        <a href="/account" data-i18n="nav.account">Sign in</a>
         <a href="#support" data-i18n="nav.support">Supported Technologies</a>
       </div>
       <div>
         <h4 data-i18n="foot.legal">Legal</h4>
-        <span data-i18n="foot.terms">Terms of Use (coming soon)</span>
-        <span data-i18n="foot.privacy">Privacy Policy (coming soon)</span>
+        <a href="/terms" data-i18n="foot.terms">Terms of Service</a>
+        <a href="/privacy" data-i18n="foot.privacy">Privacy Policy</a>
       </div>
       <div>
         <h4 data-i18n="foot.contact">Contact</h4>

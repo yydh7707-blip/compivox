@@ -4,3 +4,8 @@ node_modules/
 .env
 *.log
 dist/
+
+server/data/
+*.db
+*.db-wal
+*.db-shm

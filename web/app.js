@@ -1,11 +1,18 @@
 (() => {
   const KO = {
     skip: "본문으로 건너뛰기",
-    "nav.intro": "소개", "nav.how": "사용 방법", "nav.support": "지원 기술", "nav.features": "기능", "nav.pricing": "요금제", "nav.faq": "FAQ",
+    "nav.intro": "소개", "nav.how": "사용 방법", "nav.support": "지원 기술", "nav.features": "기능", "nav.pricing": "요금제", "nav.faq": "FAQ", "nav.security": "보안", "nav.account": "로그인",
+    "sec.label": "계정 및 보안", "sec.title": "웹사이트와 앱을 하나의 계정으로",
+    "sec.body": "같은 계정으로 웹사이트와 Windows 앱에 로그인합니다. 모든 권한 확인은 서버에서 이루어집니다.",
+    "sec.1.t": "이메일 인증", "sec.1.d": "새 계정은 이메일로 받은 6자리 코드를 확인해야 COMPIVOX를 사용할 수 있습니다.",
+    "sec.2.t": "Cloudflare Turnstile", "sec.2.d": "회원가입, 로그인 등 민감한 작업에서 자동화된 요청을 줄이기 위해 Turnstile을 사용합니다.",
+    "sec.3.t": "IP 및 네트워크 확인", "sec.3.d": "IP 주소는 접속 보안, 네트워크 위험 평가, 기기 등록 제한에 사용됩니다. 신원을 증명하는 수단이 아닌 추가 확인 절차입니다.",
+    "sec.4.t": "기기 관리", "sec.4.d": "설치마다 무작위 기기 ID가 만들어지며, 대시보드에서 내 기기를 확인하고 해제할 수 있습니다.",
     "lang.label": "언어",
     "hero.eyebrow": "Windows 프로젝트 빌드 도구",
-    "hero.w1": "프로젝트.", "hero.w2": "바로", "hero.w3": "실행.",
-    "hero.desc": "개발 중인 프로젝트를 간결한 빌드와 패키징 과정을 거쳐 Windows 애플리케이션으로 만듭니다.",
+    "hero.w1": "한계를", "hero.w2": "넘어", "hero.w3": "빌드하세요.",
+    "hero.aria": "한계를 넘어 빌드하세요.",
+    "hero.desc": "간결한 빌드와 패키징 경험으로 개발 프로젝트를 Windows 애플리케이션으로 바꿔 보세요.",
     "hero.download": "COMPIVOX 다운로드", "hero.explore": "기능 살펴보기",
     "intro.label": "COMPIVOX 소개",
     "intro.title": "프로젝트를 분석하고, 알맞게 빌드하고, EXE로 묶습니다",
@@ -53,15 +60,21 @@
     "dl.support": "문의 및 지원",
     "foot.intro": "프로젝트를 Windows 앱으로 간단하게 패키징합니다.",
     "foot.links": "링크", "foot.download": "다운로드", "foot.legal": "법적 고지",
-    "foot.terms": "이용약관 (준비 중)", "foot.privacy": "개인정보 처리방침 (준비 중)", "foot.contact": "문의",
+    "foot.terms": "이용약관", "foot.privacy": "개인정보 처리방침", "foot.contact": "문의",
     "foot.copy": "© 2025 COMPIVOX. 모든 권리 보유."
   };
 
   const EN = {
     skip: "Skip to content",
-    "nav.intro": "About", "nav.how": "How it works", "nav.support": "Support", "nav.features": "Features", "nav.pricing": "Pricing", "nav.faq": "FAQ",
+    "nav.intro": "About", "nav.how": "How it works", "nav.support": "Support", "nav.features": "Features", "nav.pricing": "Pricing", "nav.faq": "FAQ", "nav.security": "Security", "nav.account": "Sign in",
+    "sec.label": "Accounts & security", "sec.title": "One account for the website and the app",
+    "sec.body": "Sign in to COMPIVOX on the web or in the Windows app with the same account. Every permission check happens on our server.",
+    "sec.1.t": "Email verification", "sec.1.d": "New accounts must confirm a 6-digit code sent to their email before they can use COMPIVOX.",
+    "sec.2.t": "Cloudflare Turnstile", "sec.2.d": "Turnstile is used to reduce automated requests on sign-up, sign-in and other sensitive actions.",
+    "sec.3.t": "IP and network checks", "sec.3.d": "Your IP address is used for access security, network risk assessment and device registration limits. It is an extra check, not proof of identity.",
+    "sec.4.t": "Device management", "sec.4.d": "Each installation gets a random Device ID. You can see and remove your devices from your dashboard.",
     "hero.eyebrow": "Windows project build tool",
-    "hero.desc": "Turn your development projects into Windows applications with a streamlined building and packaging experience.",
+    "hero.desc": "Transform your development projects into Windows applications with a streamlined build and packaging experience.",
     "hero.download": "Download COMPIVOX", "hero.explore": "Explore Features",
     "intro.label": "About COMPIVOX",
     "intro.title": "Analyze a project, build it correctly, and package it as an EXE",
@@ -93,7 +106,7 @@
     "price.pro.1": "Additional features will be confirmed at launch",
     "faq.title": "Frequently asked questions", "faq.label": "FAQ",
     "lang.label": "Language",
-    "hero.w1": "Your", "hero.w2": "Projects.", "hero.w3": "Ready to Run.",
+    "hero.w1": "Build", "hero.w2": "beyond", "hero.w3": "limits.", "hero.aria": "Build beyond limits.",
     "foot.copy": "© 2025 COMPIVOX. All rights reserved.",
     "faq.q1": "What is COMPIVOX?",
     "faq.a1": "It is a desktop program that analyzes a project, checks the required build environment, and then creates and packages a Windows EXE.",
@@ -111,8 +124,8 @@
     "dl.body": "The download link will be connected when the official release file is ready.",
     "dl.support": "Contact and support",
     "foot.intro": "Package your projects as Windows apps, simply.",
-    "foot.links": "Links", "foot.download": "Download", "foot.legal": "Legal", "foot.terms": "Terms of Service (coming soon)",
-    "foot.privacy": "Privacy Policy (coming soon)", "foot.contact": "Contact"
+    "foot.links": "Links", "foot.download": "Download", "foot.legal": "Legal",     "foot.terms": "Terms of Service",
+        "foot.privacy": "Privacy Policy", "foot.contact": "Contact"
   };
 
   const root = document.documentElement;
@@ -136,7 +149,7 @@
       if (val !== undefined) el.textContent = val;
     });
     const heroTitle = document.querySelector(".hero-title");
-    if (heroTitle) heroTitle.setAttribute("aria-label", isEn ? "Your Projects. Ready to Run." : "프로젝트. 바로 실행.");
+    if (heroTitle) heroTitle.setAttribute("aria-label", t["hero.aria"]);
     document.querySelectorAll("[data-lang-btn]").forEach((btn) => {
       btn.setAttribute("aria-pressed", String(btn.dataset.langBtn === (isEn ? "en" : "ko")));
     });
