@@ -47,20 +47,20 @@ body::before, body::after, html::before {
 body::before {
   width: 130vmax; height: 80vmax; left: 50%; top: 40%; margin: -40vmax 0 0 -65vmax;
   translate: var(--mx, 0px) var(--my, 0px);
-  background: radial-gradient(closest-side, rgba(255, 236, 190, 0.55), rgba(229, 201, 138, 0.28) 45%, rgba(198, 161, 91, 0.10) 75%, transparent 100%);
+  background: radial-gradient(closest-side, rgba(196, 124, 52, 0.50), rgba(150, 96, 40, 0.26) 45%, rgba(110, 70, 30, 0.10) 75%, transparent 100%);
   opacity: calc(var(--aura) * 0.85);
   animation: cloudDrift 46s ease-in-out infinite alternate, cloudPulse 11s ease-in-out infinite;
 }
 body::after {
   width: 110vmax; height: 70vmax; right: -30vmax; bottom: -20vmax;
   translate: calc(var(--mx, 0px) * -1.2) calc(var(--my, 0px) * -1.2);
-  background: radial-gradient(closest-side, rgba(216, 189, 128, 0.40), rgba(150, 116, 61, 0.16) 55%, transparent 100%);
+  background: radial-gradient(closest-side, rgba(170, 108, 46, 0.36), rgba(110, 70, 30, 0.14) 55%, transparent 100%);
   opacity: calc(var(--aura) * 0.75);
   animation: cloudDriftB 62s ease-in-out infinite alternate, cloudPulse 17s ease-in-out infinite reverse;
 }
 html::before {
   width: 90vmax; height: 60vmax; left: -25vmax; top: -10vmax;
-  background: radial-gradient(closest-side, rgba(229, 201, 138, 0.30), rgba(198, 161, 91, 0.10) 60%, transparent 100%);
+  background: radial-gradient(closest-side, rgba(184, 118, 50, 0.28), rgba(120, 78, 34, 0.10) 60%, transparent 100%);
   opacity: calc(var(--aura) * 0.6);
   animation: cloudDriftC 75s ease-in-out infinite alternate;
 }
@@ -101,7 +101,7 @@ html::before {
   opacity: 0; transform: scale(0.55); filter: blur(18px);
   animation: introIn 1.7s var(--ease) 0.25s forwards;
 }
-.intro-mark { width: 72px; height: 72px; border-radius: 20px; background: var(--gold); color: var(--on-gold); display: grid; place-items: center; font-size: 34px; font-weight: 700; }
+.intro-mark { width: 88px; height: 88px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px rgba(176, 110, 48, 0.25); }
 .intro-name { letter-spacing: 0.5em; font-size: 22px; font-weight: 600; padding-left: 0.5em; }
 .intro-line { width: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); animation: introLine 1s var(--ease) 1.6s forwards; }
 @keyframes introIn { to { opacity: 1; transform: scale(1); filter: blur(0); } }
@@ -117,7 +117,7 @@ html::before {
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; letter-spacing: 0.04em; }
-.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--gold); color: var(--ink); display: grid; place-items: center; font-size: 15px; font-weight: 700; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; }
 .nav { display: flex; gap: 20px; margin-left: auto; flex-wrap: wrap; align-items: center; }
 .nav a { text-decoration: none; color: var(--muted); font-size: 14px; }
 .nav a:hover { color: var(--ink); }
