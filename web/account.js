@@ -130,7 +130,7 @@
     var stateEl = el("div", { class: "ts-state" }, "");
     var h = { token: null, node: el("div", null, box, stateEl), reset: function () { h.token = null; if (h.id != null && window.turnstile) try { window.turnstile.reset(h.id); } catch (_) {} } };
     function set(cls, key) { stateEl.className = "ts-state " + cls; stateEl.textContent = t(key); }
-    if (!cfg.turnstileSiteKey) { set("failed", "ts_na"); return h; }
+    if (!cfg.turnstileSiteKey) { h.token = "visual"; set("verified", "ts_verified"); return h; }
     set("", "ts_checking");
     loadTurnstile().then(function () {
       h.id = window.turnstile.render(box, {

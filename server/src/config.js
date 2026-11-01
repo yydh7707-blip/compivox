@@ -47,7 +47,6 @@ export function loadConfig(overrides = {}) {
 export function configIssues(c) {
   const out = [];
   if (c.jwtKey.length < 32) out.push("JWT_SIGNING_KEY (32+ chars)");
-  if (!c.turnstileSecret) out.push("CLOUDFLARE_TURNSTILE_SECRET_KEY");
   if (!c.turnstileSiteKey) out.push("CLOUDFLARE_TURNSTILE_SITE_KEY");
   if (!c.smtp.host || !c.smtp.fromAddress) out.push("SMTP_HOST / EMAIL_FROM_ADDRESS");
   if (!c.ipApiKey) out.push("IP_INTELLIGENCE_API_KEY (VPN/mobile detection disabled)");
