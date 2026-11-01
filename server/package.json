@@ -7,8 +7,5 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test test/auth.test.js test/security.test.js"
-  },
-  "dependencies": {
-    "nodemailer": "^6.9.16"
   }
 }

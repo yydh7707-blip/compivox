@@ -10,10 +10,6 @@ export function randomToken(bytes = 32) {
   return crypto.randomBytes(bytes).toString("base64url");
 }
 
-export function randomCode() {
-  return String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-}
-
 export function hmac(key, data) {
   return crypto.createHmac("sha256", key).update(data).digest("base64url");
 }
@@ -76,26 +72,13 @@ export function verifyJwt(token, key) {
 
 const COMMON = new Set(["password", "12345678", "123456789", "qwertyui", "password1", "iloveyou", "11111111", "abc12345", "qwerty123", "1q2w3e4r"]);
 
-export function passwordProblem(pw, email) {
+export function passwordProblem(pw, username) {
   if (typeof pw !== "string" || pw.length < 10) return "password_too_short";
   if (pw.length > 128) return "password_too_long";
   if (COMMON.has(pw.toLowerCase())) return "password_too_common";
   const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) => r.test(pw)).length;
   if (classes < 3) return "password_too_simple";
-  const local = String(email || "").split("@")[0].toLowerCase();
-  if (local.length >= 4 && pw.toLowerCase().includes(local)) return "password_contains_email";
+  const identity = String(username || "").toLowerCase();
+  if (identity.length >= 4 && pw.toLowerCase().includes(identity)) return "password_contains_username";
   return null;
-}
-
-export function normalizeEmail(e) {
-  return String(e || "").trim().toLowerCase();
-}
-
-export function validEmail(e) {
-  return e.length <= 254 && /^[^\s@<>()\\,;:"]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(e);
-}
-
-export function maskEmail(e) {
-  const [l, d] = e.split("@");
-  return `${l.slice(0, 2)}***@${d}`;
 }

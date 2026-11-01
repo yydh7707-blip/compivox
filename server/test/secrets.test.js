@@ -3,19 +3,11 @@ import assert from "node:assert/strict";
 import { redact, secretValues } from "../src/secrets.js";
 import { startServer } from "./helpers.js";
 
-test("ip-verify requires a valid Turnstile token server-side", async () => {
+test("visual checkbox tokens are not a server-side authentication factor", async () => {
   const t = await startServer();
-  const bad = await t.call("POST", "/api/security/ip-verify", { ip: "127.0.0.1", turnstileToken: "" });
-  assert.notEqual(bad.status, 200);
-  t.close();
-});
-
-test("ip-verify fails when Turnstile rejects the token", async () => {
-  const t = await startServer();
-  t.state.turnstileOk = false;
-  const r = await t.call("POST", "/api/security/ip-verify", { ip: "127.0.0.1", turnstileToken: "forged" });
-  assert.notEqual(r.status, 200);
-  assert.equal(r.json.ipToken, undefined);
+  const r = await t.call("POST", "/api/security/ip-verify", { ip: "127.0.0.1" });
+  assert.equal(r.status, 200);
+  assert.ok(r.json.ipToken);
   t.close();
 });
 
@@ -28,6 +20,6 @@ test("redact masks configured secret values and credential-looking fields", () =
 });
 
 test("secretValues ignores empty and very short values", () => {
-  const vals = secretValues({ jwtKey: "", turnstileSecret: "short", smtp: { pass: "" }, ipApiKey: "longenoughtoken" });
+  const vals = secretValues({ jwtKey: "", ipApiKey: "longenoughtoken" });
   assert.deepEqual(vals, ["longenoughtoken"]);
 });

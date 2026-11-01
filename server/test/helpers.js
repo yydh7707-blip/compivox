@@ -14,16 +14,12 @@ class FakeProvider extends IIpRiskProvider {
 }
 
 export async function startServer(over = {}) {
-  const cfg = loadConfig({ jwtKey: "x".repeat(48), publicUrl: "http://localhost", resendCooldownSec: 0, ...over });
+  const cfg = loadConfig({ jwtKey: "x".repeat(48), publicUrl: "http://localhost", ...over });
   const db = openDb(":memory:");
   const provider = new FakeProvider();
-  const mails = [];
-  const mailer = { configured: true, fail: false, async send(to, subject, text) { if (this.fail) throw new Error("smtp"); mails.push({ to, subject, text }); } };
-  const state = { turnstileOk: true };
   const handler = createApp({
-    db, cfg, mailer,
+    db, cfg,
     risk: new IpRiskAssessmentService(db, cfg, provider),
-    verifyTurnstile: async () => ({ success: state.turnstileOk }),
     fetchImpl: over.fetchImpl,
     webRoot: "."
   });
@@ -36,18 +32,25 @@ export async function startServer(over = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, headers: res.headers };
   }
-  const lastCode = () => /(\d{6})/.exec(mails.at(-1).text)[1];
-  return { call, db, mails, mailer, provider, state, cfg, lastCode, close: () => { server.closeAllConnections(); server.close(); } };
+  return { call, db, provider, cfg, close: () => { server.closeAllConnections(); server.close(); } };
 }
 
 export const PW = "Str0ng-Pass-123";
-export async function registerAndVerify(t, email = "a@example.com") {
-  const r = await t.call("POST", "/api/auth/register", { email, password: PW, confirmPassword: PW, turnstileToken: "ok" });
-  if (r.status !== 200) throw new Error("register failed " + JSON.stringify(r.json));
-  const v = await t.call("POST", "/api/auth/email/verify", { email, code: t.lastCode() });
-  if (v.status !== 200) throw new Error("verify failed");
+export async function currentIpToken(t) {
+  const check = await t.call("GET", "/api/security/ip-check");
+  if (check.status !== 200) throw new Error("ip check failed " + JSON.stringify(check.json));
+  const verified = await t.call("POST", "/api/security/ip-verify", { ip: check.json.ip, turnstileToken: "visual" });
+  if (verified.status !== 200) throw new Error("ip verify failed " + JSON.stringify(verified.json));
+  return verified.json.ipToken;
 }
-export async function login(t, email = "a@example.com", client = "desktop") {
-  const r = await t.call("POST", "/api/auth/login", { email, password: PW, client, turnstileToken: "ok" });
+export async function registerAccount(t, username = "alpha") {
+  const ipToken = await currentIpToken(t);
+  const r = await t.call("POST", "/api/auth/register", { username, password: PW, confirmPassword: PW, turnstileToken: "visual", ipToken });
+  if (r.status !== 201) throw new Error("register failed " + JSON.stringify(r.json));
+  return r;
+}
+export async function login(t, username = "alpha", client = "desktop", password = PW) {
+  const ipToken = await currentIpToken(t);
+  const r = await t.call("POST", "/api/auth/login", { username, password, client, turnstileToken: "visual", ipToken });
   return r;
 }

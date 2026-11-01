@@ -29,6 +29,5 @@ npx wrangler dev
 
 ## Accounts backend (server/)
 
-Zero-framework Node 24 server (SQLite via node:sqlite) that serves web/ and /api. Run: cd server; npm install; set JWT_SIGNING_KEY (32+ chars) and the variables in server/.env.example; node src/index.js. Tests: npm test.
-Requires configuration: Cloudflare Turnstile keys, SMTP credentials, optional ipapi.is key, IP_TRUST matching your proxy setup, and a persistent disk for the DB. Deploy as a Render Node web service (see render.yaml), not a static site.
-
+Zero-framework Node 24 server (SQLite via node:sqlite) that serves web/ and /api. Run: cd server; npm install; set JWT_SIGNING_KEY (32+ chars) and IP_TRUST for your proxy; node src/index.js. Accounts use an ID and password. Sign-up and sign-in require the user to type the IP address detected by the server. The Cloudflare-style checkbox is visual only; password recovery is available only through the signed-in account page.
+Deploy as a Render Node web service (see render.yaml), not a static site. The database is migrated in place: existing email accounts are assigned an ID from the email name and can continue signing in with their existing email during transition.

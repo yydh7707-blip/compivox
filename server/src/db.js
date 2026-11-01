@@ -5,23 +5,13 @@ import { dirname } from "node:path";
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY,
+  username TEXT,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   email_verified INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'active',
   created_at INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS email_verification_tokens(
-  id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  purpose TEXT NOT NULL,
-  code_hash TEXT NOT NULL,
-  expires_at INTEGER NOT NULL,
-  attempts INTEGER NOT NULL DEFAULT 0,
-  used INTEGER NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_evt_user ON email_verification_tokens(user_id, purpose);
 CREATE TABLE IF NOT EXISTS user_sessions(
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -123,6 +113,25 @@ export function openDb(path) {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
   db.exec(SCHEMA);
+  const columns = db.prepare("PRAGMA table_info(users)").all();
+  if (!columns.some((column) => column.name === "username")) {
+    db.exec("ALTER TABLE users ADD COLUMN username TEXT");
+  }
+  const usernameExists = db.prepare("SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_users_username'").get();
+  if (!usernameExists) {
+    const rows = db.prepare("SELECT id,email FROM users WHERE username IS NULL OR username='' ORDER BY id").all();
+    const update = db.prepare("UPDATE users SET username=? WHERE id=?");
+    const hasName = db.prepare("SELECT 1 FROM users WHERE username=?");
+    for (const row of rows) {
+      const base = String(row.email || "").split("@")[0].toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 24);
+      let username = base.length >= 3 ? base : `user${row.id}`;
+      if (hasName.get(username)) username = `${username.slice(0, 25)}_${row.id}`;
+      update.run(username, row.id);
+    }
+    db.exec("CREATE UNIQUE INDEX idx_users_username ON users(username)");
+  }
+  db.exec("UPDATE users SET email_verified=1");
+  db.exec("DROP TABLE IF EXISTS email_verification_tokens");
   return db;
 }
 

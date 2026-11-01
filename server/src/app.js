@@ -82,13 +82,17 @@ export function createApp(deps) {
   const routes = {
     "GET /api/health": async () => ({ status: "ok", service: "compivox-api" }),
     "GET /api/support": async () => SUPPORT,
-    "GET /api/config": async () => ({ turnstileSiteKey: cfg.turnstileSiteKey || null,     turnstileConfigured: !!cfg.turnstileSiteKey, emailConfigured: deps.mailer.configured, riskProvider: risk.provider.name }),
-    "POST /api/auth/register": async (c) => svc.register(c.ctx, c.body),
-    "POST /api/auth/email/verify": async (c) => svc.verifyEmail(c.ctx, c.body),
-    "POST /api/auth/email/resend": async (c) => svc.resend(c.ctx, c.body),
-    "POST /api/auth/email/send-verification": async (c) => svc.resend(c.ctx, c.body),
-    "POST /api/auth/password/forgot": async (c) => svc.forgot(c.ctx, c.body),
-    "POST /api/auth/password/reset": async (c) => svc.reset(c.ctx, c.body),
+    "GET /api/config": async () => ({ riskProvider: risk.provider.name }),
+    "POST /api/auth/register": async (c) => {
+      const r = await svc.register(c.ctx, c.body);
+      const { body, headers } = sessionResponse(r);
+      return { __status: 201, __headers: headers, ...body };
+    },
+    "POST /api/auth/email/verify": async () => { throw new ApiError(410, "email_verification_removed"); },
+    "POST /api/auth/email/resend": async () => { throw new ApiError(410, "email_verification_removed"); },
+    "POST /api/auth/email/send-verification": async () => { throw new ApiError(410, "email_verification_removed"); },
+    "POST /api/auth/password/forgot": async () => { throw new ApiError(410, "email_recovery_removed"); },
+    "POST /api/auth/password/reset": async () => { throw new ApiError(410, "email_recovery_removed"); },
 
     "POST /api/auth/login": async (c) => {
       const r = await svc.login(c.ctx, c.body);
@@ -136,7 +140,7 @@ export function createApp(deps) {
       svc.limit(`pwchange:${user.id}`, 5, 900);
       const { verifyPassword, hashPassword, passwordProblem } = await import("./crypto.js");
       if (!verifyPassword(String(c.body.currentPassword || ""), user.password_hash)) throw new ApiError(401, "invalid_credentials");
-      const pp = passwordProblem(c.body.newPassword, user.email);
+      const pp = passwordProblem(c.body.newPassword, user.username);
       if (pp) throw new ApiError(400, pp);
       db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(hashPassword(c.body.newPassword), user.id);
       db.prepare("UPDATE user_sessions SET revoked=1 WHERE user_id=? AND id<>?").run(user.id, sid);
@@ -156,8 +160,8 @@ export function createApp(deps) {
 
     "GET /api/security/ip-check": async (c) => {
       svc.limit(`ipcheck:${c.ctx.ip}`, 60, 600);
-      const a = await risk.assess(c.ctx.ip);
-      return { ip: c.ctx.ip, ipVersion: c.ctx.ip.includes(":") ? 6 : 4, trusted: c.ctx.trusted, action: a.action, assessed: a.assessed };
+      if (!c.ctx.ip || !c.ctx.trusted) throw new ApiError(403, "ip_untrusted");
+      return { ip: c.ctx.ip, ipVersion: c.ctx.ip.includes(":") ? 6 : 4 };
     },
     "POST /api/security/ip-verify": async (c) => {
       svc.limit(`ipverify:${c.ctx.ip}`, 20, 900);
@@ -165,8 +169,6 @@ export function createApp(deps) {
       const typed = normalizeIp(c.body.ip);
       if (!typed || typed !== c.ctx.ip) throw new ApiError(400, "ip_mismatch");
       await svc.turnstile(c.body.turnstileToken, c.ctx.ip);
-      const a = await risk.assess(c.ctx.ip);
-      if (a.action === "BLOCK") throw new ApiError(403, "network_blocked", { reasons: a.reasons });
       return { status: "verified", ipToken: svc.ipToken(c.ctx.ip), validForSec: 600 };
     },
     "GET /api/security/network-risk": async (c) => {
@@ -206,18 +208,17 @@ export function createApp(deps) {
       const devices = db.prepare("SELECT COUNT(*) c FROM devices WHERE user_id=?").get(user.id).c;
       const builds = db.prepare("SELECT project,created_at FROM build_usage WHERE user_id=? ORDER BY id DESC LIMIT 5").all(user.id);
       const logins = db.prepare("SELECT COUNT(*) c FROM login_history WHERE user_id=? AND success=0 AND created_at>?").get(user.id, now() - 7 * 86400).c;
-      return { user: svc.userView(user), plan: svc.plan(user), devices: { count: devices, limit: svc.settingNum("limit.perAccount", cfg.maxDevicesPerAccount) }, recentBuilds: builds, security: { emailVerified: !!user.email_verified, failedLoginsLast7Days: logins } };
+      return { user: svc.userView(user), plan: svc.plan(user), devices: { count: devices, limit: svc.settingNum("limit.perAccount", cfg.maxDevicesPerAccount) }, recentBuilds: builds, security: { failedLoginsLast7Days: logins } };
     },
     "GET /api/dashboard/plan": async (c) => svc.plan(svc.authenticate(c.req).user),
     "GET /api/dashboard/security": async (c) => {
       const { user } = svc.authenticate(c.req);
       const logins = db.prepare("SELECT ip,client,success,reason,created_at FROM login_history WHERE user_id=? ORDER BY id DESC LIMIT 10").all(user.id);
-      return { emailVerified: !!user.email_verified, recentLogins: logins };
+      return { recentLogins: logins };
     },
 
     "POST /api/builds/authorize": async (c) => {
       const { user } = svc.authenticate(c.req);
-      if (!user.email_verified) throw new ApiError(403, "email_not_verified");
       const deviceId = String(c.body.deviceId || "");
       const dev = db.prepare("SELECT id FROM devices WHERE user_id=? AND device_id=?").get(user.id, deviceId);
       if (!dev) throw new ApiError(403, "device_not_registered");
@@ -249,8 +250,8 @@ export function createApp(deps) {
       adminOnly(c);
       const ip = normalizeIp(c.url.searchParams.get("ip"));
       const rows = ip
-        ? db.prepare("SELECT d.id,d.device_id,d.name,d.registered_ip,u.email FROM devices d JOIN users u ON u.id=d.user_id WHERE d.registered_ip=?").all(ip)
-        : db.prepare("SELECT d.id,d.device_id,d.name,d.registered_ip,u.email FROM devices d JOIN users u ON u.id=d.user_id ORDER BY d.id DESC LIMIT 100").all();
+        ? db.prepare("SELECT d.id,d.device_id,d.name,d.registered_ip,u.username FROM devices d JOIN users u ON u.id=d.user_id WHERE d.registered_ip=?").all(ip)
+        : db.prepare("SELECT d.id,d.device_id,d.name,d.registered_ip,u.username FROM devices d JOIN users u ON u.id=d.user_id ORDER BY d.id DESC LIMIT 100").all();
       return { devices: rows, ipRegistrations: ip ? db.prepare("SELECT device_id,created_at FROM device_registrations WHERE ip=?").all(ip) : [] };
     },
     "DELETE /api/admin/devices/:id": async (c) => {
@@ -271,7 +272,8 @@ export function createApp(deps) {
     },
     "PUT /api/admin/users/plan": async (c) => {
       adminOnly(c);
-      const u = svc.userByEmail(String(c.body.email || "").trim().toLowerCase());
+      const account = String(c.body.username || c.body.email || "").trim().toLowerCase();
+      const u = svc.userByUsername(account);
       if (!u || !["FREE", "PRO"].includes(c.body.plan)) throw new ApiError(400, "invalid_input");
       db.prepare("INSERT OR REPLACE INTO user_entitlements(user_id,plan,source,expires_at,updated_at) VALUES(?,?,?,?,?)").run(u.id, c.body.plan, "admin", c.body.expiresAt ? Number(c.body.expiresAt) : null, now());
       return { status: "saved" };
@@ -300,7 +302,7 @@ export function createApp(deps) {
     try {
       const data = await readFile(file);
       const ext = extname(file);
-      res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream", "cache-control": ext === ".html" ? "no-cache" : "public, max-age=3600", ...SEC_HEADERS });
+      res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream", "cache-control": [".html", ".js", ".css"].includes(ext) ? "no-cache" : "public, max-age=3600", ...SEC_HEADERS });
       res.end(req.method === "HEAD" ? undefined : data);
     } catch {
       res.writeHead(404, { "content-type": "text/plain; charset=utf-8", ...SEC_HEADERS });

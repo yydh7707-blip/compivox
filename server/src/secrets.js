@@ -3,7 +3,7 @@ const MIN_SECRET_LENGTH = 8;
 const MASK = "[REDACTED]";
 
 export function secretValues(cfg) {
-  return [cfg.jwtKey, cfg.turnstileSecret, cfg.smtp?.pass, cfg.ipApiKey]
+  return [cfg.jwtKey, cfg.ipApiKey]
     .filter((v) => typeof v === "string" && v.length >= MIN_SECRET_LENGTH);
 }
 

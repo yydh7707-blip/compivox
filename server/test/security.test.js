@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { startServer, registerAndVerify, login } from "./helpers.js";
+import { startServer, registerAccount, login } from "./helpers.js";
 import { resolveClientIp, normalizeIp, isCloudflareIp } from "../src/ip.js";
 
 const DEV1 = "device-aaaaaaaaaaaa-1";
@@ -53,50 +53,41 @@ test("ip resolution: cloudflare mode needs a Cloudflare edge, render mode uses t
   assert.equal(isCloudflareIp("2606:4700::1"), true);
 });
 
-test("risk policy: vpn blocked, mobile challenged, unavailable challenged, challenge satisfied by ip-verify", async () => {
+test("account access depends on matching server-observed IP, not network-risk policy", async () => {
   const t = await startServer();
-  await registerAndVerify(t);
+  await registerAccount(t);
   t.db.exec("DELETE FROM ip_risk_assessments");
   t.provider.flags = { vpn: true };
-  const blocked = await login(t);
-  assert.equal(blocked.json.error, "network_blocked");
-  t.db.exec("DELETE FROM ip_risk_assessments");
+  assert.equal((await login(t)).status, 200);
   t.provider.flags = { mobile: true };
-  const ch = await login(t);
-  assert.equal(ch.json.error, "ip_verification_required");
-  const tok = await ipToken(t);
-  const ok = await t.call("POST", "/api/auth/login", { email: "a@example.com", password: "Str0ng-Pass-123", client: "desktop", ipToken: tok.json.ipToken });
-  assert.equal(ok.status, 200);
-  t.db.exec("DELETE FROM ip_risk_assessments");
+  assert.equal((await login(t)).status, 200);
   t.provider.flags = {};
   t.provider.available = false;
-  const un = await login(t);
-  assert.equal(un.json.error, "ip_verification_required");
-  assert.deepEqual(un.json.reasons, ["risk_data_unavailable"]);
+  assert.equal((await login(t)).status, 200);
   t.close();
 });
 
 test("admin policy change turns mobile ALLOW", async () => {
-  const t = await startServer({ adminEmails: ["a@example.com"] });
-  await registerAndVerify(t);
+  const t = await startServer({ adminUsers: ["alpha"] });
+  await registerAccount(t);
   const s = await login(t);
   t.provider.flags = { mobile: true };
   const put = await t.call("PUT", "/api/admin/settings", { policies: { mobile: "ALLOW" } }, auth(s));
   assert.equal(put.status, 200);
   t.db.exec("DELETE FROM ip_risk_assessments");
   assert.equal((await login(t)).status, 200);
-  await registerAndVerify(t, "b@example.com");
-  const nb = await login(t, "b@example.com");
+  await registerAccount(t, "beta");
+  const nb = await login(t, "beta");
   assert.equal((await t.call("GET", "/api/admin/settings", null, auth(nb))).status, 403);
   t.close();
 });
 
 test("device registration: ip limit, account limit, duplicates, release", async () => {
   const t = await startServer({ maxDevicesPerIp: 3, maxDevicesPerAccount: 5 });
-  await registerAndVerify(t, "a@example.com");
-  await registerAndVerify(t, "b@example.com");
-  const a = await login(t, "a@example.com");
-  const b = await login(t, "b@example.com");
+  await registerAccount(t, "alpha");
+  await registerAccount(t, "beta");
+  const a = await login(t, "alpha");
+  const b = await login(t, "beta");
   const reg = async (s, id) => {
     const tok = await ipToken(t);
     return t.call("POST", "/api/devices/register", { deviceId: id, name: "PC", ipToken: tok.json.ipToken, turnstileToken: "ok" }, auth(s));
@@ -121,7 +112,7 @@ test("device registration: ip limit, account limit, duplicates, release", async 
 
 test("account device limit and ip change does not drop existing devices", async () => {
   const t = await startServer({ maxDevicesPerIp: 10, maxDevicesPerAccount: 1 });
-  await registerAndVerify(t);
+  await registerAccount(t);
   const a = await login(t);
   const tok = await ipToken(t);
   const body = (id) => ({ deviceId: id, name: "PC", ipToken: tok.json.ipToken, turnstileToken: "ok" });
@@ -134,8 +125,8 @@ test("account device limit and ip change does not drop existing devices", async 
 });
 
 test("build authorization needs a registered device and enforces FREE monthly limit; PRO is unlimited", async () => {
-  const t = await startServer({ freeMonthlyBuilds: 2, adminEmails: ["a@example.com"] });
-  await registerAndVerify(t);
+  const t = await startServer({ freeMonthlyBuilds: 2, adminUsers: ["alpha"] });
+  await registerAccount(t);
   const a = await login(t);
   assert.equal((await t.call("POST", "/api/builds/authorize", { deviceId: DEV1 }, auth(a))).json.error, "device_not_registered");
   const tok = await ipToken(t);
@@ -143,7 +134,7 @@ test("build authorization needs a registered device and enforces FREE monthly li
   assert.equal((await t.call("POST", "/api/builds/authorize", { deviceId: DEV1, project: "x" }, auth(a))).json.remaining, 1);
   assert.equal((await t.call("POST", "/api/builds/authorize", { deviceId: DEV1 }, auth(a))).json.remaining, 0);
   assert.equal((await t.call("POST", "/api/builds/authorize", { deviceId: DEV1 }, auth(a))).json.error, "build_limit_reached");
-  await t.call("PUT", "/api/admin/users/plan", { email: "a@example.com", plan: "PRO" }, auth(a));
+  await t.call("PUT", "/api/admin/users/plan", { username: "alpha", plan: "PRO" }, auth(a));
   const ok = await t.call("POST", "/api/builds/authorize", { deviceId: DEV1 }, auth(a));
   assert.equal(ok.json.plan, "PRO");
   assert.equal(ok.json.remaining, null);
@@ -154,7 +145,7 @@ test("build authorization needs a registered device and enforces FREE monthly li
 
 test("rejects oversized and malformed bodies, unknown routes", async () => {
   const t = await startServer();
-  assert.equal((await t.call("POST", "/api/auth/login", { email: "a@example.com", password: "x".repeat(20000) })).status, 413);
+  assert.equal((await t.call("POST", "/api/auth/login", { username: "alpha", password: "x".repeat(20000) })).status, 413);
   assert.equal((await t.call("GET", "/api/nope")).status, 404);
   assert.equal((await t.call("GET", "/api/auth/login")).status, 405);
   t.close();

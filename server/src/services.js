@@ -1,10 +1,9 @@
 import { now, event } from "./db.js";
 import {
-  sha256, randomToken, randomCode, signJwt, verifyJwt, safeEqual, hmac,
-  hashPassword, verifyPassword, passwordProblem, normalizeEmail, validEmail, maskEmail
+  sha256, randomToken, signJwt, verifyJwt, hmac,
+  hashPassword, verifyPassword, passwordProblem
 } from "./crypto.js";
 import { normalizeIp, resolveClientIp } from "./ip.js";
-import { verificationEmail, resetEmail } from "./mailer.js";
 
 export class ApiError extends Error {
   constructor(status, code, extra = {}) { super(code); this.status = status; this.code = code; this.extra = extra; }
@@ -12,8 +11,10 @@ export class ApiError extends Error {
 
 const DUMMY_HASH = hashPassword("compivox-dummy-password");
 const DEVICE_RE = /^[A-Za-z0-9_-]{16,64}$/;
+const normalizeUsername = (value) => String(value || "").trim().toLowerCase();
+const validUsername = (value) => /^[a-z0-9_.-]{3,32}$/.test(value);
 
-export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
+export function createServices({ db, cfg, risk }) {
   const svc = {};
 
   svc.hit = (key, max, windowSec) => {
@@ -50,6 +51,11 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     const b = verifyJwt(token, cfg.jwtKey);
     return !!b && b.p === "ipv" && b.ip === ip;
   };
+  svc.requireIpVerification = (ctx, token) => {
+    if (!ctx.ip || !ctx.trusted || !svc.checkIpToken(token, ctx.ip)) {
+      throw new ApiError(403, "ip_verification_required");
+    }
+  };
 
   svc.client = (req) => {
     const c = resolveClientIp(req, cfg);
@@ -68,118 +74,27 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     return a;
   };
 
-  const issueCode = (userId, purpose, ttl) => {
-    const code = randomCode();
-    db.prepare("UPDATE email_verification_tokens SET used=1 WHERE user_id=? AND purpose=? AND used=0").run(userId, purpose);
-    db.prepare("INSERT INTO email_verification_tokens(user_id,purpose,code_hash,expires_at,created_at) VALUES(?,?,?,?,?)")
-      .run(userId, purpose, sha256(`${userId}:${purpose}:${code}`), now() + ttl, now());
-    return code;
-  };
-  const consumeCode = (userId, purpose, code) => {
-    const row = db.prepare("SELECT * FROM email_verification_tokens WHERE user_id=? AND purpose=? AND used=0 ORDER BY id DESC LIMIT 1").get(userId, purpose);
-    if (!row) throw new ApiError(400, "code_invalid");
-    if (row.expires_at < now()) throw new ApiError(410, "code_expired");
-    if (row.attempts >= cfg.codeMaxAttempts) throw new ApiError(429, "too_many_attempts");
-    if (!/^\d{6}$/.test(String(code)) || !safeEqual(row.code_hash, sha256(`${userId}:${purpose}:${code}`))) {
-      db.prepare("UPDATE email_verification_tokens SET attempts=attempts+1 WHERE id=?").run(row.id);
-      throw new ApiError(400, "code_invalid");
-    }
-    db.prepare("UPDATE email_verification_tokens SET used=1 WHERE id=?").run(row.id);
-  };
-
-  svc.sendCode = async (user, purpose) => {
-    const ttl = purpose === "verify" ? cfg.codeTtlSec : 600;
-    const code = issueCode(user.id, purpose, ttl);
-    const mail = (purpose === "verify" ? verificationEmail : resetEmail)(code, Math.round(ttl / 60));
-    try {
-      await mailer.send(user.email, mail.subject, mail.text, mail.html);
-    } catch (e) {
-      db.prepare("UPDATE email_verification_tokens SET used=1 WHERE user_id=? AND purpose=? AND used=0").run(user.id, purpose);
-      throw new ApiError(502, e.message === "mail_not_configured" ? "email_not_configured" : "email_send_failed");
-    }
-  };
-
-  const userByEmail = (email) => db.prepare("SELECT * FROM users WHERE email=?").get(email);
-  svc.userByEmail = userByEmail;
+  const userByUsername = (username) => db.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE OR email=? COLLATE NOCASE").get(username, username);
+  svc.userByUsername = userByUsername;
 
   svc.register = async (ctx, b) => {
-    const email = normalizeEmail(b.email);
-    if (!validEmail(email)) throw new ApiError(400, "invalid_email");
+    const username = normalizeUsername(b.username || b.id);
+    if (!validUsername(username)) throw new ApiError(400, "invalid_username");
     if (b.password !== b.confirmPassword) throw new ApiError(400, "password_mismatch");
-    const pp = passwordProblem(b.password, email);
+    const pp = passwordProblem(b.password, username);
     if (pp) throw new ApiError(400, pp);
     svc.limit(`reg:ip:${ctx.ip}`, 10, 3600);
     await svc.turnstile(b.turnstileToken, ctx.ip);
-    await svc.accessGate(ctx, b.ipToken);
-    const existing = userByEmail(email);
-    if (existing) {
-      // Same response either way so registration cannot be used to enumerate accounts.
-      if (!existing.email_verified && svc.hit(`resend:${email}`, 1, cfg.resendCooldownSec)) {
-        try { await svc.sendCode(existing, "verify"); } catch { /* not revealed */ }
-      }
-      return { status: "verification_sent", email: maskEmail(email) };
-    }
-    svc.limit(`reg:email:${email}`, 5, 3600);
-    const r = db.prepare("INSERT INTO users(email,password_hash,created_at) VALUES(?,?,?)").run(email, hashPassword(b.password), now());
-    const user = { id: Number(r.lastInsertRowid), email };
+    svc.requireIpVerification(ctx, b.ipToken);
+    svc.limit(`reg:user:${username}`, 5, 3600);
+    if (userByUsername(username)) throw new ApiError(409, "username_taken");
+    const email = `cvx-${randomToken(12)}@users.compivox.invalid`;
+    const r = db.prepare("INSERT INTO users(username,email,password_hash,email_verified,created_at) VALUES(?,?,?,1,?)")
+      .run(username, email, hashPassword(b.password), now());
+    const user = { id: Number(r.lastInsertRowid), username, email, email_verified: 1 };
     db.prepare("INSERT INTO user_entitlements(user_id,plan,source,updated_at) VALUES(?,?,?,?)").run(user.id, "FREE", "default", now());
-    svc.hit(`resend:${email}`, 1, cfg.resendCooldownSec);
-    try { await svc.sendCode(user, "verify"); }
-    catch (e) { db.prepare("DELETE FROM users WHERE id=?").run(user.id); throw e; }
     event(db, user.id, "register", ctx.ip);
-    return { status: "verification_sent", email: maskEmail(email) };
-  };
-
-  svc.verifyEmail = (ctx, b) => {
-    const email = normalizeEmail(b.email);
-    svc.limit(`verify:ip:${ctx.ip}`, 30, 900);
-    const user = userByEmail(email);
-    if (!user) throw new ApiError(400, "code_invalid");
-    consumeCode(user.id, "verify", b.code);
-    db.prepare("UPDATE users SET email_verified=1 WHERE id=?").run(user.id);
-    event(db, user.id, "email_verified", ctx.ip);
-    return { status: "verified" };
-  };
-
-  svc.resend = async (ctx, b) => {
-    const email = normalizeEmail(b.email);
-    if (!validEmail(email)) throw new ApiError(400, "invalid_email");
-    svc.limit(`resend:ip:${ctx.ip}`, 10, 3600);
-    await svc.turnstile(b.turnstileToken, ctx.ip);
-    const user = userByEmail(email);
-    if (user && !user.email_verified) {
-      if (!svc.hit(`resend:${email}`, 1, cfg.resendCooldownSec)) throw new ApiError(429, "resend_cooldown");
-      svc.limit(`resend:day:${email}`, 10, 86400);
-      await svc.sendCode(user, "verify");
-    }
-    return { status: "verification_sent", email: maskEmail(email) };
-  };
-
-  svc.forgot = async (ctx, b) => {
-    const email = normalizeEmail(b.email);
-    if (!validEmail(email)) throw new ApiError(400, "invalid_email");
-    svc.limit(`forgot:ip:${ctx.ip}`, 10, 3600);
-    await svc.turnstile(b.turnstileToken, ctx.ip);
-    const user = userByEmail(email);
-    if (user && svc.hit(`forgot:${email}`, 1, cfg.resendCooldownSec)) {
-      svc.limit(`forgot:day:${email}`, 10, 86400);
-      await svc.sendCode(user, "reset");
-    }
-    return { status: "reset_sent" };
-  };
-
-  svc.reset = (ctx, b) => {
-    const email = normalizeEmail(b.email);
-    svc.limit(`reset:ip:${ctx.ip}`, 20, 900);
-    const user = userByEmail(email);
-    if (!user) throw new ApiError(400, "code_invalid");
-    const pp = passwordProblem(b.newPassword, email);
-    if (pp) throw new ApiError(400, pp);
-    consumeCode(user.id, "reset", b.code);
-    db.prepare("UPDATE users SET password_hash=?, email_verified=1 WHERE id=?").run(hashPassword(b.newPassword), user.id);
-    db.prepare("UPDATE user_sessions SET revoked=1 WHERE user_id=?").run(user.id);
-    event(db, user.id, "password_reset", ctx.ip);
-    return { status: "password_changed" };
+    return { s: newSession(user, "web", ctx), user, client: "web" };
   };
 
   const newSession = (user, client, ctx, family) => {
@@ -194,26 +109,24 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
   svc.newSession = newSession;
 
   svc.login = async (ctx, b) => {
-    const email = normalizeEmail(b.email);
+    const username = normalizeUsername(b.username || b.id || b.email);
     const client = b.client === "desktop" ? "desktop" : "web";
-    if (!validEmail(email) || typeof b.password !== "string" || b.password.length > 128) throw new ApiError(400, "invalid_credentials");
+    if ((!validUsername(username) && !/^[^\s@]+@[^\s@]+$/.test(username)) || typeof b.password !== "string" || b.password.length > 128) throw new ApiError(400, "invalid_credentials");
     svc.limit(`login:ip:${ctx.ip}`, client === "desktop" ? 20 : 30, 900);
-    if (svc.isLocked(`loginfail:${email}`, 5)) throw new ApiError(429, "account_temporarily_locked");
-    // Desktop clients cannot render Turnstile; they rely on the stricter per-email and per-IP throttles above.
+    svc.requireIpVerification(ctx, b.ipToken);
+    if (svc.isLocked(`loginfail:${username}`, 5)) throw new ApiError(429, "account_temporarily_locked");
     if (client === "web") await svc.turnstile(b.turnstileToken, ctx.ip);
-    await svc.accessGate(ctx, b.ipToken);
-    const user = userByEmail(email);
+    const user = userByUsername(username);
     const ok = verifyPassword(b.password, user ? user.password_hash : DUMMY_HASH) && !!user;
     const log = (reason, success) => db.prepare("INSERT INTO login_history(user_id,email,ip,client,success,reason,created_at) VALUES(?,?,?,?,?,?,?)")
-      .run(user?.id ?? null, email, ctx.ip, client, success, reason, now());
+      .run(user?.id ?? null, username, ctx.ip, client, success, reason, now());
     if (!ok) {
-      svc.hit(`loginfail:${email}`, 5, 900);
+      svc.hit(`loginfail:${username}`, 5, 900);
       log("bad_credentials", 0);
       throw new ApiError(401, "invalid_credentials");
     }
     if (user.status !== "active") { log("suspended", 0); throw new ApiError(403, "account_suspended"); }
-    if (!user.email_verified) { log("unverified", 0); throw new ApiError(403, "email_not_verified"); }
-    svc.clear(`loginfail:${email}`);
+    svc.clear(`loginfail:${username}`);
     log("ok", 1);
     const s = newSession(user, client, ctx);
     return { s, user, client };
@@ -231,7 +144,7 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     }
     if (row.revoked || row.expires_at < now()) throw new ApiError(401, "invalid_refresh");
     const user = db.prepare("SELECT * FROM users WHERE id=?").get(row.user_id);
-    if (!user || user.status !== "active" || !user.email_verified) throw new ApiError(401, "invalid_refresh");
+    if (!user || user.status !== "active") throw new ApiError(401, "invalid_refresh");
     db.prepare("UPDATE user_sessions SET rotated=1, revoked=1 WHERE id=?").run(row.id);
     const s = newSession(user, row.client, ctx, row.family);
     return { s, user, client: row.client };
@@ -250,7 +163,7 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     return { user, sid: sess.id };
   };
 
-  svc.isAdmin = (user) => !!user.email_verified && cfg.adminEmails.includes(user.email);
+  svc.isAdmin = (user) => cfg.adminUsers.includes(user.username) || cfg.adminEmails.includes(user.email);
 
   svc.plan = (user) => {
     const e = db.prepare("SELECT * FROM user_entitlements WHERE user_id=?").get(user.id);
@@ -276,7 +189,6 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
   };
 
   svc.registerDevice = (ctx, user, b) => {
-    if (!user.email_verified) throw new ApiError(403, "email_not_verified");
     if (!ctx.ip || !ctx.trusted) throw new ApiError(403, "ip_untrusted");
     if (!DEVICE_RE.test(String(b.deviceId || ""))) throw new ApiError(400, "invalid_device_id");
     if (!svc.checkIpToken(b.ipToken, ctx.ip)) throw new ApiError(403, "ip_verification_required");
@@ -303,7 +215,7 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     return { status: "registered" };
   };
 
-  svc.userView = (user) => ({ id: user.id, email: user.email, emailVerified: !!user.email_verified, status: user.status, createdAt: user.created_at, admin: svc.isAdmin(user) });
+  svc.userView = (user) => ({ id: user.id, username: user.username, email: user.username, emailVerified: true, status: user.status, createdAt: user.created_at, admin: svc.isAdmin(user) });
 
   return svc;
 }

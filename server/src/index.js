@@ -2,7 +2,6 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { loadConfig, configIssues } from "./config.js";
 import { openDb } from "./db.js";
-import { SmtpMailer } from "./mailer.js";
 import { IpApiIsProvider, NullProvider, IpRiskAssessmentService } from "./risk.js";
 import { createApp } from "./app.js";
 
@@ -19,7 +18,6 @@ const provider = cfg.ipApiKey ? new IpApiIsProvider(cfg.ipApiKey) : new NullProv
 
 const handler = createApp({
   db, cfg,
-  mailer: new SmtpMailer(cfg.smtp),
   risk: new IpRiskAssessmentService(db, cfg, provider),
   webRoot: fileURLToPath(new URL("../../web", import.meta.url))
 });
