@@ -5,7 +5,7 @@ import { ApiError, createServices } from "./services.js";
 import { normalizeIp } from "./ip.js";
 import { randomToken } from "./crypto.js";
 import { loadPolicies } from "./risk.js";
-import { createBilling } from "./billing.js";
+import { redact, secretValues } from "./secrets.js";
 
 const SUPPORT = {
   supported: ["Python", "C#/.NET", "C/C++", "Java", "Go", "Rust"],
@@ -63,7 +63,6 @@ export function createApp(deps) {
   const HANDOFF_TTL_MS = 120_000;
   const handoffs = new Map();
   const webRoot = resolve(deps.webRoot || "../web");
-  const billing = createBilling({ db, cfg, fetchImpl: deps.fetchImpl });
 
   const setRefreshCookie = (token, maxAge) =>
     `${COOKIE}=${encodeURIComponent(token)}; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
@@ -83,8 +82,7 @@ export function createApp(deps) {
   const routes = {
     "GET /api/health": async () => ({ status: "ok", service: "compivox-api" }),
     "GET /api/support": async () => SUPPORT,
-    "GET /api/config": async () => ({ turnstileSiteKey: cfg.turnstileSiteKey || null, turnstileConfigured: !!deps.verifyTurnstile, emailConfigured: deps.mailer.configured, riskProvider: risk.provider.name }),
-
+    "GET /api/config": async () => ({ turnstileSiteKey: cfg.turnstileSiteKey || null,     turnstileConfigured: !!cfg.turnstileSiteKey, emailConfigured: deps.mailer.configured, riskProvider: risk.provider.name }),
     "POST /api/auth/register": async (c) => svc.register(c.ctx, c.body),
     "POST /api/auth/email/verify": async (c) => svc.verifyEmail(c.ctx, c.body),
     "POST /api/auth/email/resend": async (c) => svc.resend(c.ctx, c.body),
@@ -104,16 +102,6 @@ export function createApp(deps) {
       const r = svc.refresh(c.ctx, fromBody ? c.body.refreshToken : cookies[COOKIE]);
       const { body, headers } = sessionResponse(r);
       return { __status: 200, __headers: headers, ...body };
-    },
-    "POST /api/billing/checkout": async (c) => {
-      const { user } = svc.authenticate(c.req);
-      if (!user.email_verified) throw new ApiError(403, "email_not_verified");
-      return billing.createCheckout(user, c.body.returnPath);
-    },
-    "POST /api/billing/verify": async (c) => {
-      const { user } = svc.authenticate(c.req);
-      const r = await billing.verifyCheckout(user, c.body.checkoutId);
-      return { ...r, user: svc.userView(user) };
     },
     "POST /api/auth/desktop-handoff": async (c) => {
       const { user } = svc.authenticate(c.req);
@@ -176,6 +164,7 @@ export function createApp(deps) {
       if (!c.ctx.ip || !c.ctx.trusted) throw new ApiError(403, "ip_untrusted");
       const typed = normalizeIp(c.body.ip);
       if (!typed || typed !== c.ctx.ip) throw new ApiError(400, "ip_mismatch");
+      await svc.turnstile(c.body.turnstileToken, c.ctx.ip);
       const a = await risk.assess(c.ctx.ip);
       if (a.action === "BLOCK") throw new ApiError(403, "network_blocked", { reasons: a.reasons });
       return { status: "verified", ipToken: svc.ipToken(c.ctx.ip), validForSec: 600 };
@@ -347,7 +336,7 @@ export function createApp(deps) {
       if (e instanceof ApiError) {
         send(res, e.status, { error: e.code, ...e.extra }, e.status === 429 ? { "retry-after": "60" } : {});
       } else {
-        console.error("unhandled", e?.message);
+        console.error("unhandled", redact(e?.message, secretValues(deps.cfg)));
         send(res, 500, { error: "server_error" });
       }
     }

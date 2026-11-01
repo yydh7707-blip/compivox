@@ -21,10 +21,6 @@ export function loadConfig(overrides = {}) {
       fromAddress: env.EMAIL_FROM_ADDRESS || "",
       fromName: env.EMAIL_FROM_NAME || "COMPIVOX"
     },
-    polarAccessToken: env.POLAR_ACCESS_TOKEN || "",
-    polarProductId: env.POLAR_PRODUCT_ID_PRO || "",
-    // production | sandbox
-    polarServer: (env.POLAR_SERVER || "production").toLowerCase(),
     ipApiKey: env.IP_INTELLIGENCE_API_KEY || "",
     // direct | render | cloudflare
     ipTrust: (env.IP_TRUST || "direct").toLowerCase(),

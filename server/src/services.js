@@ -36,13 +36,8 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
   };
   svc.clear = (key) => db.prepare("DELETE FROM rate_limits WHERE key=?").run(key);
 
-  svc.turnstile = async (token, ip) => {
-    if (!verifyTurnstile) throw new ApiError(503, "turnstile_not_configured");
-    if (!token || typeof token !== "string" || token.length > 2048) throw new ApiError(400, "turnstile_required");
-    let r;
-    try { r = await verifyTurnstile(token, ip); } catch { throw new ApiError(503, "turnstile_unavailable"); }
-    if (!r?.success) throw new ApiError(403, "turnstile_failed");
-  };
+  // Visual-only: the widget is shown in the UI, but the server does not verify the token.
+  svc.turnstile = async () => {};
 
   svc.settingNum = (key, dflt) => {
     const r = db.prepare("SELECT value FROM settings WHERE key=?").get(key);

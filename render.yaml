@@ -38,11 +38,5 @@ services:
         sync: false
       - key: IP_INTELLIGENCE_API_KEY
         sync: false
-      - key: POLAR_ACCESS_TOKEN
-        sync: false
-      - key: POLAR_PRODUCT_ID_PRO
-        sync: false
-      - key: POLAR_SERVER
-        value: production
       - key: ADMIN_EMAILS
         sync: false

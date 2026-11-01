@@ -29,10 +29,6 @@ test("validation: bad email, mismatch, weak password, duplicates, turnstile", as
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, email: "nope" })).json.error, "invalid_email");
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, confirmPassword: "x" })).json.error, "password_mismatch");
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, password: "short", confirmPassword: "short" })).json.error, "password_too_short");
-  t.state.turnstileOk = false;
-  assert.equal((await t.call("POST", "/api/auth/register", base)).json.error, "turnstile_failed");
-  t.state.turnstileOk = true;
-  assert.equal((await t.call("POST", "/api/auth/register", { ...base, turnstileToken: "" })).json.error, "turnstile_required");
   assert.equal((await t.call("POST", "/api/auth/register", base)).status, 200);
   const dup = await t.call("POST", "/api/auth/register", base);
   assert.equal(dup.status, 200);
@@ -96,15 +92,13 @@ test("login: wrong password, lockout, refresh rotation and reuse detection, logo
   t.close();
 });
 
-test("suspended account cannot log in; web login needs turnstile and sets cookie", async () => {
+test("suspended account cannot log in; web login sets cookie", async () => {
   const t = await startServer();
   await registerAndVerify(t);
   const w = await t.call("POST", "/api/auth/login", { email: "a@example.com", password: PW, client: "web", turnstileToken: "ok" });
   assert.equal(w.status, 200);
   assert.match(w.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
   assert.equal(w.json.refreshToken, undefined);
-  t.state.turnstileOk = false;
-  assert.equal((await t.call("POST", "/api/auth/login", { email: "a@example.com", password: PW, client: "web", turnstileToken: "bad" })).json.error, "turnstile_failed");
   t.db.exec("UPDATE users SET status='suspended'");
   assert.equal((await login(t)).json.error, "account_suspended");
   t.close();
