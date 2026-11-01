@@ -340,7 +340,27 @@
   /* Dashboard */
   var TABS = ["overview", "account", "devices", "security", "plan", "downloads", "settings"];
 
-  function enterDash() { state.view = "dash"; state.tab = qs.get("device") ? "devices" : state.tab; render(); }
+  function enterDash() { state.view = "dash"; state.tab = qs.get("device") ? "devices" : state.tab; render(); maybeHandoff(); }
+
+  /* Desktop app login: ?desktop=<port>&state=<nonce> → send a one-time code back to 127.0.0.1 */
+  var handoffStarted = false;
+  function maybeHandoff() {
+    var port = qs.get("desktop"), st = qs.get("state");
+    if (handoffStarted || !/^\d{2,5}$/.test(port || "") || !/^[A-Za-z0-9_-]{16,128}$/.test(st || "")) return;
+    handoffStarted = true;
+    var box = document.createElement("div");
+    box.id = "handoff-status";
+    box.setAttribute("role", "status");
+    box.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#08090d;color:#e5c98a;font:600 16px system-ui,sans-serif;z-index:9999;padding:24px;text-align:center";
+    box.textContent = "COMPIVOX 앱으로 돌아가는 중입니다…";
+    document.body.appendChild(box);
+    api("POST", "/auth/desktop-handoff", {}).then(function (d) {
+      location.replace("http://127.0.0.1:" + port + "/callback?code=" + encodeURIComponent(d.code) + "&state=" + encodeURIComponent(st));
+    }).catch(function () {
+      handoffStarted = false;
+      box.textContent = "앱 연결에 실패했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+    });
+  }
 
   function viewDash() {
     var content = el("section", { class: "dash-main" });
@@ -472,5 +492,6 @@
     if (await refresh()) state.view = "dash";
     if (state.view === "dash" && qs.get("device")) state.tab = "devices";
     render();
+    if (state.view === "dash") maybeHandoff();
   })();
 })();

@@ -3,6 +3,7 @@ import { resolve, extname, sep } from "node:path";
 import { now, event } from "./db.js";
 import { ApiError, createServices } from "./services.js";
 import { normalizeIp } from "./ip.js";
+import { randomToken } from "./crypto.js";
 import { loadPolicies } from "./risk.js";
 
 const SUPPORT = {
@@ -57,6 +58,9 @@ export function createApp(deps) {
   const svc = createServices(deps);
   const secure = cfg.publicUrl.startsWith("https://");
   const COOKIE = "cvx_rt";
+  // One-time codes that hand a browser login back to the desktop app (in memory, short-lived).
+  const HANDOFF_TTL_MS = 120_000;
+  const handoffs = new Map();
   const webRoot = resolve(deps.webRoot || "../web");
 
   const setRefreshCookie = (token, maxAge) =>
@@ -98,6 +102,21 @@ export function createApp(deps) {
       const r = svc.refresh(c.ctx, fromBody ? c.body.refreshToken : cookies[COOKIE]);
       const { body, headers } = sessionResponse(r);
       return { __status: 200, __headers: headers, ...body };
+    },
+    "POST /api/auth/desktop-handoff": async (c) => {
+      const { user } = svc.authenticate(c.req);
+      const s = svc.newSession(user, "desktop", c.ctx);
+      const code = randomToken(32);
+      handoffs.set(sha(code), { s, user, expires: Date.now() + HANDOFF_TTL_MS });
+      return { code, expiresIn: HANDOFF_TTL_MS / 1000 };
+    },
+    "POST /api/auth/desktop-exchange": async (c) => {
+      const key = sha(String(c.body.code || ""));
+      const h = handoffs.get(key);
+      handoffs.delete(key);
+      if (!h || h.expires < Date.now()) throw new ApiError(400, "code_invalid");
+      const { body } = sessionResponse({ s: h.s, user: h.user, client: "desktop" });
+      return { __status: 200, ...body };
     },
     "POST /api/auth/logout": async (c) => {
       let sid = null;

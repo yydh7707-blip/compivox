@@ -196,6 +196,7 @@ export function createServices({ db, cfg, mailer, risk, verifyTurnstile }) {
     const access = signJwt({ sub: user.id, sid }, cfg.jwtKey, cfg.accessTtlSec);
     return { access, refresh, sid };
   };
+  svc.newSession = newSession;
 
   svc.login = async (ctx, b) => {
     const email = normalizeEmail(b.email);
