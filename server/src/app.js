@@ -5,6 +5,7 @@ import { ApiError, createServices } from "./services.js";
 import { normalizeIp } from "./ip.js";
 import { randomToken } from "./crypto.js";
 import { loadPolicies } from "./risk.js";
+import { createBilling } from "./billing.js";
 
 const SUPPORT = {
   supported: ["Python", "C#/.NET", "C/C++", "Java", "Go", "Rust"],
@@ -62,6 +63,7 @@ export function createApp(deps) {
   const HANDOFF_TTL_MS = 120_000;
   const handoffs = new Map();
   const webRoot = resolve(deps.webRoot || "../web");
+  const billing = createBilling({ db, cfg, fetchImpl: deps.fetchImpl });
 
   const setRefreshCookie = (token, maxAge) =>
     `${COOKIE}=${encodeURIComponent(token)}; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
@@ -102,6 +104,16 @@ export function createApp(deps) {
       const r = svc.refresh(c.ctx, fromBody ? c.body.refreshToken : cookies[COOKIE]);
       const { body, headers } = sessionResponse(r);
       return { __status: 200, __headers: headers, ...body };
+    },
+    "POST /api/billing/checkout": async (c) => {
+      const { user } = svc.authenticate(c.req);
+      if (!user.email_verified) throw new ApiError(403, "email_not_verified");
+      return billing.createCheckout(user, c.body.returnPath);
+    },
+    "POST /api/billing/verify": async (c) => {
+      const { user } = svc.authenticate(c.req);
+      const r = await billing.verifyCheckout(user, c.body.checkoutId);
+      return { ...r, user: svc.userView(user) };
     },
     "POST /api/auth/desktop-handoff": async (c) => {
       const { user } = svc.authenticate(c.req);

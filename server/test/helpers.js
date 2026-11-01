@@ -24,6 +24,7 @@ export async function startServer(over = {}) {
     db, cfg, mailer,
     risk: new IpRiskAssessmentService(db, cfg, provider),
     verifyTurnstile: async () => ({ success: state.turnstileOk }),
+    fetchImpl: over.fetchImpl,
     webRoot: "."
   });
   const server = http.createServer(handler);
