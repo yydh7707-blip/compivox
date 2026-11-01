@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: compivox-web
+    runtime: static
+    rootDir: web
+    staticPublishPath: .
