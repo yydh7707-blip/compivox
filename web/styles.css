@@ -265,6 +265,9 @@ button:active, .btn:active { transform: scale(0.98); }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); margin-bottom: 16px; }
 .check input { accent-color: var(--gold-deep); }
 .btn.block { width: 100%; }
+.row-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.panel form > .btn.block { margin-top: 8px; }
+.ts-box { margin: 6px 0 18px; min-height: 65px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 14px; }
 .links a, .linkbtn { color: var(--gold-deep); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .alert { padding: 11px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; border: 1px solid; }
