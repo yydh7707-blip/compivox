@@ -45,7 +45,7 @@ export async function currentIpToken(t) {
 }
 export async function registerAccount(t, username = "alpha") {
   const ipToken = await currentIpToken(t);
-  const r = await t.call("POST", "/api/auth/register", { username, password: PW, confirmPassword: PW, turnstileToken: "visual", ipToken });
+  const r = await t.call("POST", "/api/auth/register", { username, password: PW, confirmPassword: PW, termsAccepted: true, privacyAcknowledged: true, turnstileToken: "visual", ipToken });
   if (r.status !== 201) throw new Error("register failed " + JSON.stringify(r.json));
   return r;
 }

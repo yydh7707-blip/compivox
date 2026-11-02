@@ -1,36 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>COMPIVOX — Terms of Service</title>
+  <meta name="description" content="COMPIVOX 이용약관">
+  <title>COMPIVOX — 이용약관</title>
   <link rel="stylesheet" href="/styles.css">
-  <script src="aura.js" defer></script>
+  <script src="/legal.js" defer></script>
+  <script src="/aura.js" defer></script>
 </head>
-<body>
-  <header class="topbar"><a class="brand" href="/"><img class="brand-mark" src="/emblem.png" alt="" aria-hidden="true" /><span>COMPIVOX</span></a><nav class="nav"><a href="/">Home</a></nav></header>
+<body class="legal-page">
+  <header class="topbar"><a class="brand" href="/"><img class="brand-mark" src="/emblem.png" alt=""><span>COMPIVOX</span></a><nav class="nav legal-nav" aria-label="정책 페이지"><a href="/privacy">개인정보</a><a href="/terms" aria-current="page">이용약관</a><a href="/service-information">서비스 안내</a><a href="/legal-information">법률 안내</a><a href="/faq">FAQ</a></nav></header>
   <main class="legal">
-    <h1>Terms of Service / 이용약관</h1>
-    <p>Last updated: draft. This text describes how the service currently works and is not legal advice; have it reviewed before commercial launch. / 서비스의 현재 동작을 설명하는 초안이며 법률 자문이 아닙니다. 상업 출시 전에 검토를 받으세요.</p>
-    <h2>1. Service / 서비스</h2>
-    <p>COMPIVOX provides a Windows application for building and packaging development projects, and a website with accounts for managing access. / COMPIVOX는 개발 프로젝트를 빌드·패키징하는 Windows 앱과, 접근을 관리하는 계정 웹사이트를 제공합니다.</p>
-    <h2>2. Accounts / 계정</h2>
-    <ul>
-      <li>You must verify your email address with a 6-digit code before using the service. / 서비스 이용 전 이메일로 받은 6자리 코드로 인증해야 합니다.</li>
-      <li>Keep your password confidential. You are responsible for activity under your account. / 비밀번호를 안전하게 보관해야 하며 계정 활동에 대한 책임은 본인에게 있습니다.</li>
-    </ul>
-    <h2>3. Security measures / 보안 조치</h2>
-    <ul>
-      <li>We use Cloudflare Turnstile to reduce automated abuse. / 자동화된 남용을 줄이기 위해 Cloudflare Turnstile을 사용합니다.</li>
-      <li>We assess your IP address and network type. Access from some networks (for example VPN, proxy, Tor, data-center or mobile networks) may be blocked or may require an extra confirmation step. Network detection is a risk signal and can be wrong. / IP 주소와 네트워크 유형을 평가하며, VPN·프록시·Tor·데이터센터·모바일 등 일부 네트워크는 차단되거나 추가 확인이 필요할 수 있습니다. 탐지는 위험 신호일 뿐 오류가 있을 수 있습니다.</li>
-      <li>The number of devices per account and per network is limited. / 계정당·네트워크당 등록 가능한 기기 수에 제한이 있습니다.</li>
-    </ul>
-    <h2>4. Plans / 요금제</h2>
-    <p>FREE accounts have a monthly build limit. PRO is currently granted manually by an administrator; online payment is not available yet. / FREE 계정에는 월간 빌드 한도가 있습니다. PRO는 현재 관리자가 수동으로 부여하며 온라인 결제는 아직 제공되지 않습니다.</p>
-    <h2>5. Acceptable use / 허용되는 사용</h2>
-    <p>Do not attempt to bypass limits, abuse the service, or interfere with other users. We may suspend accounts that do. / 한도 우회, 서비스 남용, 다른 사용자 방해를 해서는 안 되며, 위반 시 계정이 정지될 수 있습니다.</p>
-    <h2>6. Contact / 문의</h2>
-    <p>Use the contact form on the home page. / 홈 화면의 문의 양식을 이용하세요.</p>
+    <p class="section-label">TERMS</p>
+    <h1>COMPIVOX 이용약관</h1>
+    <p class="legal-date">시행일: 2026년 11월 2일 · 문서 버전: 2026-11-02</p>
+    <p class="legal-notice">현재 온라인 결제는 연결되어 있지 않습니다. 유료 상품의 가격·결제·구독·평생 이용권은 판매되지 않으며, 아래 조항은 실제로 제공되는 기능과 법령상 이용자 권리를 기준으로 합니다. 운영자 법적 정보 및 비공개 문의처는 게시 전 확인이 필요합니다.</p>
+    <nav class="legal-toc" aria-label="이 페이지 목차"><strong>목차</strong><ol id="legal-toc-list"></ol></nav>
+
+    <section class="legal-section" id="purpose"><h2>제1조 목적</h2><p>이 약관은 COMPIVOX 데스크톱 소프트웨어와 계정 웹사이트(이하 “서비스”)의 이용 조건, 이용자와 운영자의 권리·의무 및 책임을 정합니다.</p></section>
+    <section class="legal-section" id="definitions"><h2>제2조 용어</h2><ul><li>“프로그램”은 Windows 환경에서 프로젝트 분석·환경 확인·빌드·패키징을 지원하는 COMPIVOX 앱을 말합니다.</li><li>“계정”은 웹사이트와 프로그램의 권한 확인에 사용하는 아이디 및 인증 정보를 말합니다.</li><li>“프로젝트”는 이용자가 로컬 장치에서 선택한 소스 코드·구성 파일 등 빌드 입력을 말합니다.</li><li>“결과물”은 프로그램과 로컬 빌드 도구가 생성한 파일·폴더를 말합니다.</li><li>“PRO 권한”은 현재 운영자가 관리 기능으로 계정에 수동 설정할 수 있는 상위 기능 권한이며, 유료 구매를 의미하지 않습니다.</li></ul></section>
+    <section class="legal-section" id="effect"><h2>제3조 약관의 효력 및 변경</h2><p>가입 화면에서 이용자는 약관을 확인하고 동의한 뒤 계정을 생성할 수 있습니다. 동의한 약관 버전과 시각은 계정과 함께 기록됩니다. 운영자는 법령을 위반하거나 이용자에게 부당하게 불리하지 않도록 약관을 변경하고, 변경 내용과 시행일을 사전에 합리적인 방법으로 알립니다. 중요한 변경에는 다시 동의를 받거나 이용자가 계속 이용할지 선택할 수 있도록 합니다. 법령상 이용자의 권리를 약관만으로 제한하지 않습니다.</p></section>
+    <section class="legal-section" id="accounts"><h2>제4조 가입 및 계정 관리</h2><p>가입에는 아이디·비밀번호, 서버가 확인한 현재 IP의 확인 절차 및 웹 보안 확인이 사용됩니다. 이메일 주소를 입력받지 않으며 이메일 인증·이메일 비밀번호 재설정은 제공되지 않습니다. 아이디·비밀번호를 안전하게 관리하고 타인과 공유하지 마십시오. 계정 접근 문제나 도용이 의심되면 운영자에게 알려야 합니다.</p><p>계정 삭제 기능은 현재 웹 대시보드에 구현되어 있지 않습니다. 삭제·권리 요청의 안전한 비공개 접수 방법은 운영자 확인이 필요하며 개인정보 처리방침의 안내를 참조하십시오.</p></section>
+    <section class="legal-section" id="service"><h2>제5조 서비스 내용</h2><p>프로그램은 로컬 프로젝트 분석, 지원 언어·프레임워크 감지, SDK·빌드 도구 확인, 지원되는 프로젝트의 로컬 빌드·패키징, 빌드 결과 및 오류 표시를 제공합니다. 계정 서비스는 로그인, 기기 연결·관리, 빌드 이용량 및 계정 권한 확인을 제공합니다. 지원 여부는 프로젝트와 설치 환경에 따라 달라집니다. 모든 프로젝트가 빌드된다고 보장하지 않습니다.</p></section>
+    <section class="legal-section" id="free-paid"><h2>제6조 무료 기능과 유료 기능</h2><p>현재 기본 FREE 빌드 한도는 월 10회이며, 운영 설정에 따라 변경될 수 있습니다. 서버는 PRO 권한에 대해 월 빌드 한도 없는 설정과 일부 확장 기능 권한을 표시하지만, 실제 앱에서 사용 가능한 옵션은 버전·프로젝트에 따라 다를 수 있습니다. 현재 PRO는 관리자가 수동으로 부여할 수 있고 온라인 결제는 연결되지 않았습니다. 유료 상품·요금·판매 중인 기능이 있는 것처럼 해석하지 마십시오.</p></section>
+    <section class="legal-section" id="duties"><h2>제7조 이용자의 의무</h2><p>이용자는 정확한 계정 정보를 입력하고, 타인의 권리를 침해하지 않는 프로젝트와 적법하게 사용할 수 있는 개발 도구를 이용해야 합니다. 프로젝트와 빌드 도구가 신뢰할 수 있는 출처인지 확인하고, 결과물을 배포하기 전에 라이선스·보안·개인정보·수출 및 배포 조건을 점검하십시오.</p></section>
+    <section class="legal-section" id="prohibited"><h2>제8조 금지 행위</h2><ul><li>법령 위반, 악성코드 제작·배포, 타인 시스템에 대한 무단 접근 또는 피해 유발</li><li>계정 도용, 보안 확인·사용량·기기 제한의 우회, API 공격 또는 서비스 방해</li><li>타인의 지식재산권·개인정보·영업비밀 침해</li><li>서비스를 역공학·복제하거나 운영자 권한을 부정 취득하는 행위(법률상 허용되는 권리는 제외)</li><li>위 행위를 돕거나 타인에게 피해를 주는 행위</li></ul></section>
+    <section class="legal-section" id="projects"><h2>제9조 프로젝트 파일의 선택·처리</h2><p>이용자가 선택한 프로젝트는 PC에서 임시 작업 복사본으로 만들어 로컬 빌드 도구로 처리됩니다. 프로젝트 소스와 빌드 결과물 자체를 COMPIVOX 계정 서버에 업로드하는 기능은 확인되지 않았습니다. 빌드 권한 확인을 위해 프로젝트 이름(최대 80자), 계정·기기 식별 정보가 서버에 전송될 수 있습니다. 빌드 스크립트와 패키지 관리자는 임의 명령을 실행하거나 인터넷에서 의존성을 받을 수 있습니다. 자세한 내용은 <a href="/service-information">서비스 운영 및 개발 안내</a>를 확인하십시오.</p><p>빌드 전 앱은 스크립트가 임의 명령을 실행할 수 있음을 안내하고 동의를 요청합니다. Windows Sandbox 자동 실행은 구현되어 있지 않습니다. 신뢰할 수 없는 프로젝트를 실행하지 마십시오.</p></section>
+    <section class="legal-section" id="outputs"><h2>제10조 빌드 결과물과 책임</h2><p>결과물의 정확성·호환성은 프로젝트, 의존성, 운영체제, 로컬 SDK, 빌드 도구 및 설정에 영향을 받습니다. 이용자는 중요 데이터의 백업, 결과물의 실행·배포 전 검증, 악성 행위 여부 검사, 라이선스 준수 및 배포 책임을 부담합니다. 다만 운영자에게 법령상 책임이 있는 경우까지 배제하거나 이용자에게 일방적으로 전가하지 않습니다. 보안·정확성이 검증되었다고 별도로 표시하지 않은 결과물은 이용자가 직접 검증해야 합니다.</p></section>
+    <section class="legal-section" id="ip"><h2>제11조 지식재산권</h2><p>서비스 프로그램·브랜드·사이트의 권리는 해당 권리자에게 귀속됩니다. 이용자는 자신이 소유하거나 적법하게 처리할 권리가 있는 프로젝트를 사용해야 합니다. 프로젝트 파일과 결과물에 관한 권리는 이용자 또는 원래 권리자에게 남으며, 이용자는 본 약관으로 운영자에게 소유권을 이전하지 않습니다. 로컬 빌드 과정에 필요한 범위를 넘어 프로젝트를 이용하는 권리를 운영자에게 부여하지 않습니다.</p></section>
+    <section class="legal-section" id="restriction"><h2>제12조 이용 제한 및 정지</h2><p>운영자는 법령 위반, 보안 침해, 다른 이용자에 대한 피해 또는 서비스 안정성에 중대한 위험이 있는 경우 필요한 범위에서 사전 통지 후 이용을 제한할 수 있습니다. 긴급한 보안·법률상 사유가 있는 경우 먼저 임시 조치하고 사후에 사유를 알릴 수 있습니다. 이용자는 이의 제기와 사실 확인을 요청할 수 있으며, 제한은 사유가 해소되면 합리적으로 해제합니다. 계정 상태와 권한을 자의적으로 박탈하지 않습니다.</p></section>
+    <section class="legal-section" id="changes"><h2>제13조 서비스 변경·중단</h2><p>기능 개선, 보안, 기술·운영상 필요로 서비스가 변경될 수 있습니다. 정기 점검이나 불가피한 장애로 서비스가 중단될 때 가능한 범위에서 사전에 공지하고 복구 상황을 안내합니다. 법령상 책임이나 이미 발생한 이용자 권리는 본 조항으로 소멸하지 않습니다.</p></section>
+    <section class="legal-section" id="billing"><h2>제14조 결제 및 유료 서비스</h2><p>현재 결제 대행업체·결제창·자동 결제·상품 판매는 연결되어 있지 않습니다. 따라서 현재 결제 수단, 수수료, 청구 정보 또는 카드 정보를 수집하지 않습니다. 향후 유료 상품을 제공하려면 결제 전 가격, 세금 포함 여부, 제공 내용, 결제 주기, 사업자 정보와 청약철회·환불 조건을 별도로 표시하고 필요한 동의와 법적 절차를 갖춥니다.</p></section>
+    <section class="legal-section" id="subscription"><h2>제15조 구독 및 평생 이용권</h2><p>현재 판매되는 구독 또는 평생 이용권은 없습니다. 이 조항은 그러한 상품이 존재하거나 구매 계약이 이미 체결되었다는 의미가 아닙니다. 향후 상품이 출시될 경우 이용기간, 자동 갱신 여부, 취소 방법, 서비스 종료 시 처리와 권리 범위를 별도 상품 안내 및 약관에 명시합니다.</p></section>
+    <section class="legal-section" id="pro-rights"><h2>제16조 PRO 권한의 지급·회수</h2><p>현재 PRO는 관리자가 계정에 수동으로 설정할 수 있으며 출처·만료 시각이 서버에 기록됩니다. 이는 온라인 결제의 증거나 유료 권한이 아닙니다. 권한은 만료 또는 보안·오류 정정 사유로 변경될 수 있으며, 운영자는 변경 사유와 이용자 문의 경로를 안내합니다. 유료 권한을 향후 판매할 때에는 구매한 권리를 임의로 회수하지 않으며 법령과 별도 계약을 따릅니다.</p></section>
+    <section class="legal-section" id="withdrawal"><h2>제17조 청약철회 및 환불</h2><p>현재 온라인 판매가 없어 이 서비스에서 결제·환불 처리는 이루어지지 않습니다. 향후 전자상거래 또는 디지털 콘텐츠를 판매하는 경우에도 법률이 보장하는 청약철회·환불 권리를 존중합니다. 디지털 콘텐츠의 청약철회 제한은 법령상 요건과 사전 고지·동의 등 필요한 절차를 실제로 충족한 범위에서만 적용하며, 모든 환불을 일률적으로 거부하지 않습니다. 구체적인 권리는 <a href="https://www.law.go.kr/법령/전자상거래등에서의소비자보호에관한법률">전자상거래법</a> 및 관련 법령을 따릅니다.</p></section>
+    <section class="legal-section" id="minors"><h2>제18조 미성년자의 계약과 법정대리인</h2><p>미성년자는 대한민국 민법에 따른 행위능력 규정을 적용받을 수 있으며, 법정대리인의 동의가 필요한 계약을 체결할 때에는 적법한 동의를 확인해야 합니다. 연령만으로 소프트웨어 개발이나 웹사이트 제작의 적법성을 단정하지 않습니다. 현재 서비스에는 나이 입력·법정대리인 확인 기능이 구현되어 있지 않습니다. 만 14세 미만 이용자의 개인정보를 처리할 때 필요한 법정대리인 동의·확인 절차도 구현되어 있지 않으므로 해당 절차가 마련되기 전에는 계정을 생성하지 말고 보호자와 운영자에게 먼저 확인하십시오. 자세한 사항은 <a href="/legal-information">미성년자·법률 안내</a>를 확인하십시오.</p></section>
+    <section class="legal-section" id="privacy"><h2>제19조 개인정보 보호</h2><p>개인정보 처리는 <a href="/privacy">개인정보 처리방침</a>과 적용 법령에 따릅니다. 이용자는 타인의 개인정보나 비밀정보를 동의 없이 프로젝트에 포함하거나 공유하지 않아야 합니다. 법령에 따른 이용자의 권리는 이 약관에 의해 제한되지 않습니다.</p></section>
+    <section class="legal-section" id="liability"><h2>제20조 손해배상 및 책임</h2><p>각 당사자는 자신의 귀책사유로 상대방에게 발생시킨 손해에 대해 적용 법령에 따라 책임을 집니다. 운영자는 고의·과실, 강행법규 또는 소비자 보호 법령에 따라 부담하는 책임을 약관으로 면제하지 않습니다. 무료 기능의 제공이나 기술적 한계만으로 모든 손해 책임을 배제하지 않으며, 구체적인 배상 범위는 사실관계와 법령에 따라 판단합니다.</p></section>
+    <section class="legal-section" id="law"><h2>제21조 준거법과 분쟁</h2><p>서비스 이용과 관련된 분쟁은 대한민국 법령에 따라 해결하며, 관할 법원은 민사소송법 등 적용 법령에 따릅니다. 소비자에게 법률이 보장하는 재판·분쟁조정 권리를 제한하지 않습니다. 필요한 경우 한국소비자원 등 공식 기관의 상담 절차를 이용할 수 있습니다.</p></section>
+    <section class="legal-section" id="contact"><h2>제22조 문의</h2><p>일반적인 문의는 <a href="https://github.com/yydh7707-blip/compivox/issues">COMPIVOX GitHub 이슈</a>를 이용할 수 있습니다. 이슈는 공개될 수 있으므로 비밀번호·IP·개인정보를 적지 마십시오. 운영자의 법적 성명·주소와 비공개 고객 문의 수단은 확인되지 않아 게시 전에 운영자 지정이 필요합니다.</p></section>
+    <section class="legal-section" id="effective"><h2>제23조 시행일</h2><p>이 약관은 2026년 11월 2일부터 시행합니다.</p></section>
+    <p class="legal-bottom"><a href="/privacy">개인정보 처리방침</a> · <a href="/service-information">서비스 운영 및 개발 안내</a> · <a href="/legal-information">미성년자·법률 안내</a> · <a href="/faq">FAQ</a> · <a href="/">홈</a></p>
   </main>
 </body>
 </html>

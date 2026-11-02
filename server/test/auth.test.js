@@ -4,7 +4,7 @@ import { startServer, currentIpToken, registerAccount, login, PW } from "./helpe
 
 test("signup and login require the user to confirm the server-observed IP", async () => {
   const t = await startServer();
-  const body = { username: "alpha", password: PW, confirmPassword: PW };
+  const body = { username: "alpha", password: PW, confirmPassword: PW, termsAccepted: true, privacyAcknowledged: true };
   const required = await t.call("POST", "/api/auth/register", body);
   assert.equal(required.status, 403);
   assert.equal(required.json.error, "ip_verification_required");
@@ -29,13 +29,19 @@ test("signup and login require the user to confirm the server-observed IP", asyn
 test("ID, password and duplicate validation", async () => {
   const t = await startServer();
   const ipToken = await currentIpToken(t);
-  const base = { username: "alpha", password: PW, confirmPassword: PW, ipToken };
+  const base = { username: "alpha", password: PW, confirmPassword: PW, termsAccepted: true, privacyAcknowledged: true, ipToken };
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, username: "no" })).json.error, "invalid_username");
+  assert.equal((await t.call("POST", "/api/auth/register", { ...base, termsAccepted: false })).json.error, "terms_acceptance_required");
+  assert.equal((await t.call("POST", "/api/auth/register", { ...base, privacyAcknowledged: false })).json.error, "privacy_acknowledgment_required");
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, confirmPassword: "different" })).json.error, "password_mismatch");
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, password: "short", confirmPassword: "short" })).json.error, "password_too_short");
   assert.equal((await t.call("POST", "/api/auth/register", base)).status, 201);
   assert.equal((await t.call("POST", "/api/auth/register", { ...base, username: "ALPHA" })).json.error, "username_taken");
   assert.equal(t.db.prepare("SELECT COUNT(*) c FROM users").get().c, 1);
+  const acceptance = t.db.prepare("SELECT terms_version,privacy_version,accepted_at FROM policy_acceptances").get();
+  assert.equal(acceptance.terms_version, "2026-11-02");
+  assert.equal(acceptance.privacy_version, "2026-11-02");
+  assert.ok(acceptance.accepted_at > 0);
   t.close();
 });
 
@@ -72,6 +78,27 @@ test("web login sets a refresh cookie; suspended accounts cannot log in", async 
   assert.equal(web.json.refreshToken, undefined);
   t.db.exec("UPDATE users SET status='suspended'");
   assert.equal((await login(t)).json.error, "account_suspended");
+  t.close();
+});
+
+test("existing accounts must accept current policies before using authenticated APIs", async () => {
+  const t = await startServer();
+  await registerAccount(t);
+  t.db.exec("UPDATE policy_acceptances SET terms_version='2025-01-01',privacy_version='2025-01-01'");
+
+  const loginResult = await login(t, "alpha", "web");
+  assert.equal(loginResult.status, 200);
+  assert.equal(loginResult.json.policyAcceptanceRequired, true);
+  const auth = { authorization: "Bearer " + loginResult.json.accessToken };
+  assert.equal((await t.call("GET", "/api/auth/me", null, auth)).json.error, "policy_acceptance_required");
+  assert.equal((await t.call("POST", "/api/auth/policy-acceptance", { termsAccepted: true }, auth)).json.error, "privacy_acknowledgment_required");
+
+  const accepted = await t.call("POST", "/api/auth/policy-acceptance", { termsAccepted: true, privacyAcknowledged: true }, auth);
+  assert.equal(accepted.status, 200);
+  assert.equal(accepted.json.policyAcceptanceRequired, false);
+  assert.equal((await t.call("GET", "/api/auth/me", null, auth)).status, 200);
+  assert.equal((await login(t, "alpha", "web")).json.policyAcceptanceRequired, false);
+  assert.equal(t.db.prepare("SELECT COUNT(*) c FROM policy_acceptances").get().c, 2);
   t.close();
 });
 

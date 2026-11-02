@@ -69,7 +69,13 @@ export function createApp(deps) {
     `${COOKIE}=${encodeURIComponent(token)}; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
 
   const sessionResponse = ({ s, user, client }) => {
-    const body = { accessToken: s.access, expiresIn: cfg.accessTtlSec, user: svc.userView(user), plan: svc.plan(user) };
+    const body = {
+      accessToken: s.access,
+      expiresIn: cfg.accessTtlSec,
+      user: svc.userView(user),
+      plan: svc.plan(user),
+      policyAcceptanceRequired: !svc.hasCurrentPolicies(user.id)
+    };
     if (client === "desktop") body.refreshToken = s.refresh;
     const headers = client === "web" ? { "set-cookie": setRefreshCookie(s.refresh, cfg.refreshTtlSec) } : {};
     return { body, headers };
@@ -94,6 +100,13 @@ export function createApp(deps) {
     "POST /api/auth/email/send-verification": async () => { throw new ApiError(410, "email_verification_removed"); },
     "POST /api/auth/password/forgot": async () => { throw new ApiError(410, "email_recovery_removed"); },
     "POST /api/auth/password/reset": async () => { throw new ApiError(410, "email_recovery_removed"); },
+    "POST /api/auth/policy-acceptance": async (c) => {
+      const { user } = svc.authenticate(c.req, true);
+      if (c.body.termsAccepted !== true) throw new ApiError(400, "terms_acceptance_required");
+      if (c.body.privacyAcknowledged !== true) throw new ApiError(400, "privacy_acknowledgment_required");
+      const acceptedAt = svc.recordPolicyAcceptance(user.id);
+      return { status: "accepted", acceptedAt, policyAcceptanceRequired: false };
+    },
 
     "POST /api/auth/login": async (c) => {
       const r = await svc.login(c.ctx, c.body);

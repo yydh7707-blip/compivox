@@ -13,6 +13,15 @@ const TURNSTILE_ACTIONS = new Map([
   ["/api/security/ip-verify", "ip_verify"],
   ["/api/devices/register", "device_register"],
 ]);
+const PAGE_ROUTES = new Map([
+  ["/privacy", "/privacy.html"],
+  ["/terms", "/terms.html"],
+  ["/service-information", "/service-information.html"],
+  ["/legal-information", "/legal-information.html"],
+  ["/faq", "/faq.html"],
+  ["/account", "/account.html"],
+  ["/download", "/download.html"],
+]);
 
 const encoder = new TextEncoder();
 const json = (body, status = 200, headers = {}) =>
@@ -265,10 +274,16 @@ async function handle(request, env) {
     return proxy(request, env);
   }
   if (env.ASSETS) {
-    const response = await env.ASSETS.fetch(request);
+    const assetUrl = new URL(request.url);
+    const assetPath = PAGE_ROUTES.get(assetUrl.pathname);
+    if (assetPath) assetUrl.pathname = assetPath;
+    const response = await env.ASSETS.fetch(assetPath ? new Request(assetUrl, request) : request);
     const headers = new Headers(response.headers);
     for (const [name, value] of Object.entries(JSON_HEADERS)) {
       if (name !== "content-type" && !headers.has(name)) headers.set(name, value);
+    }
+    if (/^(text\/html|text\/css|text\/javascript|application\/javascript)/i.test(headers.get("content-type") ?? "")) {
+      headers.set("cache-control", "no-cache");
     }
     headers.set("content-security-policy", [
       "default-src 'self'",

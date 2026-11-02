@@ -9,6 +9,8 @@
       home: "Home", signin: "Sign in", signinSub: "Use your COMPIVOX ID.", username: "COMPIVOX ID", password: "Password", confirm: "Confirm password",
       remember: "Keep me signed in on this browser", noacc: "Create an account", haveacc: "I already have an account",
       register: "Create account", registerSub: "Create an ID for the website and Windows app.", pwHint: "ID: 3–32 letters, numbers, dots, underscores or hyphens. Password: at least 10 characters.",
+      termsAccept: "I agree to the Terms of Service.", privacyAck: "I have read the Privacy Policy.", readTerms: "Read terms", readPrivacy: "Read privacy policy", policyRequired: "Accept the Terms of Service and confirm that you have read the Privacy Policy.",
+      policyTitle: "Review updated policies", policyBody: "Your account must accept the current Terms of Service and acknowledge the Privacy Policy before continuing.",
       newPw: "New password", ts_verified: "Verified", ts_prompt: "Verify you are human", ts_required: "Complete the verification first.",
       verifying: "Checking verification…", ts_expired: "Verification expired. Please try again.",
       ts_failed: "Verification failed. Please try again.", ts_unavailable: "Human verification is unavailable.",
@@ -30,12 +32,15 @@
       e_account_suspended: "This account is suspended.", e_ip_untrusted: "Your IP address could not be determined.",
       e_password_too_short: "Password must be at least 10 characters.", e_password_too_long: "Password is too long.",
       e_password_too_common: "Choose a less common password.", e_password_too_simple: "Use a mix of letters, numbers and symbols.",
-      e_password_contains_username: "Your password cannot contain your ID.", e_bad_origin: "Request rejected."
+      e_password_contains_username: "Your password cannot contain your ID.", e_bad_origin: "Request rejected.",
+      e_terms_acceptance_required: "You must agree to the Terms of Service.", e_privacy_acknowledgment_required: "Confirm that you have read the Privacy Policy."
     },
     ko: {
       home: "홈", signin: "로그인", signinSub: "COMPIVOX 아이디로 로그인하세요.", username: "COMPIVOX 아이디", password: "비밀번호", confirm: "비밀번호 확인",
       remember: "이 브라우저에서 로그인 유지", noacc: "계정 만들기", haveacc: "이미 계정이 있어요",
       register: "계정 만들기", registerSub: "웹사이트와 Windows 앱에서 사용할 아이디를 만드세요.", pwHint: "아이디: 영문, 숫자, 점, 밑줄, 하이픈 3~32자. 비밀번호: 10자 이상.",
+      termsAccept: "이용약관에 동의합니다.", privacyAck: "개인정보 처리방침을 확인했습니다.", readTerms: "약관 읽기", readPrivacy: "개인정보 처리방침 읽기", policyRequired: "이용약관에 동의하고 개인정보 처리방침 확인을 완료하세요.",
+      policyTitle: "변경된 정책 확인", policyBody: "계속 이용하려면 현재 이용약관에 동의하고 개인정보 처리방침을 확인해야 합니다.",
       newPw: "새 비밀번호", ts_verified: "확인됨", ts_prompt: "사람인지 확인하세요", ts_required: "먼저 인증을 완료하세요.",
       verifying: "인증을 확인하는 중…", ts_expired: "인증이 만료되었습니다. 다시 시도하세요.",
       ts_failed: "인증에 실패했습니다. 다시 시도하세요.", ts_unavailable: "사람 확인을 사용할 수 없습니다.",
@@ -57,7 +62,8 @@
       e_account_suspended: "정지된 계정입니다.", e_ip_untrusted: "IP 주소를 확인할 수 없습니다.",
       e_password_too_short: "비밀번호는 10자 이상이어야 합니다.", e_password_too_long: "비밀번호가 너무 깁니다.",
       e_password_too_common: "더 안전한 비밀번호를 선택하세요.", e_password_too_simple: "영문, 숫자, 기호를 섞어 입력하세요.",
-      e_password_contains_username: "비밀번호에 아이디를 포함할 수 없습니다.", e_bad_origin: "요청이 거부되었습니다."
+      e_password_contains_username: "비밀번호에 아이디를 포함할 수 없습니다.", e_bad_origin: "요청이 거부되었습니다.",
+      e_terms_acceptance_required: "이용약관에 동의해야 합니다.", e_privacy_acknowledgment_required: "개인정보 처리방침 확인이 필요합니다."
     }
   };
   function t(k) { return D[lang][k] || D.en[k] || k; }
@@ -242,7 +248,8 @@
       guarded(p, btn, async function () {
         var d = await api("POST", "/auth/login", { username: state.username, password: pw.input.value, client: "web", verificationId: ts.token, ipToken: state.ipToken }, { noRefresh: true });
         access = d.accessToken; me = d; state.ipToken = null;
-        enterDash();
+        if (d.policyAcceptanceRequired) { state.view = "policy"; render(); }
+        else enterDash();
         ts.reset();
       }, ts).catch(function () {});
     });
@@ -256,19 +263,56 @@
     var em = field(t("username"), "text", "username", { value: state.username, maxlength: "32", autocomplete: "username" });
     var pw = field(t("password"), "password", "password", { autocomplete: "new-password" });
     var pw2 = field(t("confirm"), "password", "confirm", { autocomplete: "new-password" });
+    var terms = el("input", { type: "checkbox", required: "required" });
+    var privacy = el("input", { type: "checkbox", required: "required" });
+    var consent = el("div", { class: "policy-consent" },
+      el("label", null, terms, el("span", null, t("termsAccept"))),
+      el("a", { href: "/terms", target: "_blank", rel: "noopener" }, t("readTerms")),
+      el("label", null, privacy, el("span", null, t("privacyAck"))),
+      el("a", { href: "/privacy", target: "_blank", rel: "noopener" }, t("readPrivacy")));
     var ts = turnstileBox("register");
     var btn = el("button", { type: "submit", class: "btn primary block" }, t("register"));
-    var form = el("form", { novalidate: "novalidate" }, em.node, pw.node, pw2.node, el("p", { class: "sub" }, t("pwHint")), ts.node, btn);
+    var form = el("form", { novalidate: "novalidate" }, em.node, pw.node, pw2.node, el("p", { class: "sub" }, t("pwHint")), consent, ts.node, btn);
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       state.username = em.input.value.trim();
+      if (!terms.checked || !privacy.checked) { p.say(t("policyRequired")); return; }
       if (!ts.token) { p.say(t("ts_required")); return; }
       guarded(p, btn, async function () {
-        var d = await api("POST", "/auth/register", { username: state.username, password: pw.input.value, confirmPassword: pw2.input.value, verificationId: ts.token, ipToken: state.ipToken });
-        access = d.accessToken; me = d; state.ipToken = null; ts.reset(); enterDash();
+        var d = await api("POST", "/auth/register", { username: state.username, password: pw.input.value, confirmPassword: pw2.input.value, termsAccepted: terms.checked, privacyAcknowledged: privacy.checked, verificationId: ts.token, ipToken: state.ipToken });
+        access = d.accessToken; me = d; state.ipToken = null; ts.reset();
+        if (d.policyAcceptanceRequired) { state.view = "policy"; render(); }
+        else enterDash();
       }, ts);
     });
     p.append(form, el("div", { class: "row-links" }, link(t("haveacc"), function () { state.view = "login"; render(); })));
+    mount(p);
+  }
+
+  function viewPolicyAcceptance() {
+    var p = panel(t("policyTitle"), t("policyBody"));
+    var terms = el("input", { type: "checkbox", required: "required" });
+    var privacy = el("input", { type: "checkbox", required: "required" });
+    var btn = el("button", { type: "submit", class: "btn primary block" }, t("save"));
+    var form = el("form", { novalidate: "novalidate" },
+      el("label", { class: "check" }, terms, el("span", null, t("termsAccept"))),
+      el("a", { href: "/terms", target: "_blank", rel: "noopener" }, t("readTerms")),
+      el("label", { class: "check" }, privacy, el("span", null, t("privacyAck"))),
+      el("a", { href: "/privacy", target: "_blank", rel: "noopener" }, t("readPrivacy")),
+      btn);
+    form.addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      if (!terms.checked || !privacy.checked) { p.say(t("policyRequired")); return; }
+      btn.disabled = true;
+      try {
+        await api("POST", "/auth/policy-acceptance", { termsAccepted: true, privacyAcknowledged: true });
+        enterDash();
+      } catch (e) {
+        p.say(errMsg(e.code));
+        btn.disabled = false;
+      }
+    });
+    p.append(form, el("div", { class: "row-links" }, link(t("signout"), signOut)));
     mount(p);
   }
 
@@ -407,6 +451,7 @@
     document.querySelectorAll("[data-lang-btn]").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lang-btn") === lang ? "true" : "false"); });
     var v = state.view;
     if (v === "dash") return viewDash();
+    if (v === "policy") return viewPolicyAcceptance();
     var notice = state.notice; state.notice = null;
     if (v === "register") return viewRegister();
     return viewLogin(notice);
@@ -421,7 +466,7 @@
   });
 
   (async function init() {
-    if (await refresh()) state.view = "dash";
+    if (await refresh()) state.view = me.policyAcceptanceRequired ? "policy" : "dash";
     if (state.view === "dash" && qs.get("device")) state.tab = "devices";
     render();
     if (state.view === "dash") maybeHandoff();

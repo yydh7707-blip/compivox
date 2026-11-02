@@ -80,6 +80,15 @@ CREATE TABLE IF NOT EXISTS user_entitlements(
   expires_at INTEGER,
   updated_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS policy_acceptances(
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  terms_version TEXT NOT NULL,
+  privacy_version TEXT NOT NULL,
+  accepted_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_policy_acceptances_user_time
+  ON policy_acceptances(user_id, accepted_at DESC);
 CREATE TABLE IF NOT EXISTS build_usage(
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

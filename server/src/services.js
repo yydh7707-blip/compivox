@@ -11,6 +11,7 @@ export class ApiError extends Error {
 
 const DUMMY_HASH = hashPassword("compivox-dummy-password");
 const DEVICE_RE = /^[A-Za-z0-9_-]{16,64}$/;
+const POLICY_VERSION = "2026-11-02";
 const normalizeUsername = (value) => String(value || "").trim().toLowerCase();
 const validUsername = (value) => /^[a-z0-9_.-]{3,32}$/.test(value);
 
@@ -44,6 +45,17 @@ export function createServices({ db, cfg, risk }) {
     const r = db.prepare("SELECT value FROM settings WHERE key=?").get(key);
     const n = r ? parseInt(r.value, 10) : NaN;
     return Number.isFinite(n) ? n : dflt;
+  };
+
+  svc.hasCurrentPolicies = (userId) => {
+    const accepted = db.prepare("SELECT terms_version,privacy_version FROM policy_acceptances WHERE user_id=? ORDER BY accepted_at DESC,id DESC LIMIT 1").get(userId);
+    return accepted?.terms_version === POLICY_VERSION && accepted?.privacy_version === POLICY_VERSION;
+  };
+  svc.recordPolicyAcceptance = (userId) => {
+    const acceptedAt = now();
+    db.prepare("INSERT INTO policy_acceptances(user_id,terms_version,privacy_version,accepted_at) VALUES(?,?,?,?)")
+      .run(userId, POLICY_VERSION, POLICY_VERSION, acceptedAt);
+    return acceptedAt;
   };
 
   svc.ipToken = (ip) => signJwt({ p: "ipv", ip }, cfg.jwtKey, 600);
@@ -80,6 +92,8 @@ export function createServices({ db, cfg, risk }) {
   svc.register = async (ctx, b) => {
     const username = normalizeUsername(b.username || b.id);
     if (!validUsername(username)) throw new ApiError(400, "invalid_username");
+    if (b.termsAccepted !== true) throw new ApiError(400, "terms_acceptance_required");
+    if (b.privacyAcknowledged !== true) throw new ApiError(400, "privacy_acknowledgment_required");
     if (b.password !== b.confirmPassword) throw new ApiError(400, "password_mismatch");
     const pp = passwordProblem(b.password, username);
     if (pp) throw new ApiError(400, pp);
@@ -89,10 +103,22 @@ export function createServices({ db, cfg, risk }) {
     svc.limit(`reg:user:${username}`, 5, 3600);
     if (userByUsername(username)) throw new ApiError(409, "username_taken");
     const email = `cvx-${randomToken(12)}@users.compivox.invalid`;
-    const r = db.prepare("INSERT INTO users(username,email,password_hash,email_verified,created_at) VALUES(?,?,?,1,?)")
-      .run(username, email, hashPassword(b.password), now());
-    const user = { id: Number(r.lastInsertRowid), username, email, email_verified: 1 };
-    db.prepare("INSERT INTO user_entitlements(user_id,plan,source,updated_at) VALUES(?,?,?,?)").run(user.id, "FREE", "default", now());
+    const acceptedAt = now();
+    let user;
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const r = db.prepare("INSERT INTO users(username,email,password_hash,email_verified,created_at) VALUES(?,?,?,1,?)")
+        .run(username, email, hashPassword(b.password), acceptedAt);
+      user = { id: Number(r.lastInsertRowid), username, email, email_verified: 1 };
+      db.prepare("INSERT INTO user_entitlements(user_id,plan,source,updated_at) VALUES(?,?,?,?)")
+        .run(user.id, "FREE", "default", acceptedAt);
+      db.prepare("INSERT INTO policy_acceptances(user_id,terms_version,privacy_version,accepted_at) VALUES(?,?,?,?)")
+        .run(user.id, POLICY_VERSION, POLICY_VERSION, acceptedAt);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
     event(db, user.id, "register", ctx.ip);
     return { s: newSession(user, "web", ctx), user, client: "web" };
   };
@@ -150,7 +176,7 @@ export function createServices({ db, cfg, risk }) {
     return { s, user, client: row.client };
   };
 
-  svc.authenticate = (req) => {
+  svc.authenticate = (req, allowPolicyAcceptance = false) => {
     const h = req.headers.authorization || "";
     const m = /^Bearer (.+)$/.exec(h);
     const body = m && verifyJwt(m[1], cfg.jwtKey);
@@ -159,6 +185,9 @@ export function createServices({ db, cfg, risk }) {
     if (!sess || sess.user_id !== body.sub) throw new ApiError(401, "unauthorized");
     const user = db.prepare("SELECT * FROM users WHERE id=?").get(body.sub);
     if (!user || user.status !== "active") throw new ApiError(401, "unauthorized");
+    if (!allowPolicyAcceptance && !svc.hasCurrentPolicies(user.id)) {
+      throw new ApiError(403, "policy_acceptance_required");
+    }
     db.prepare("UPDATE user_sessions SET last_used_at=? WHERE id=?").run(now(), sess.id);
     return { user, sid: sess.id };
   };
