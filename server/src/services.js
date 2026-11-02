@@ -37,7 +37,7 @@ export function createServices({ db, cfg, risk }) {
   };
   svc.clear = (key) => db.prepare("DELETE FROM rate_limits WHERE key=?").run(key);
 
-  // Visual-only: the widget is shown in the UI, but the server does not verify the token.
+  // Human checks are verified and consumed by the Cloudflare Worker before this private origin is reached.
   svc.turnstile = async () => {};
 
   svc.settingNum = (key, dflt) => {

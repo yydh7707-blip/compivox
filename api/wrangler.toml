@@ -1,3 +1,28 @@
-name = "compivox-api"
+name = "compivox-edge"
 main = "src/index.js"
-compatibility_date = "2024-09-01"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[[routes]]
+pattern = "compivox.xyz/*"
+zone_name = "compivox.xyz"
+
+[[routes]]
+pattern = "www.compivox.xyz/*"
+zone_name = "compivox.xyz"
+
+[assets]
+directory = "../web"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "compivox-edge"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+COMPIVOX_ORIGIN = "https://compivox-app.onrender.com"
+WEB_ORIGIN = "https://compivox.xyz,https://www.compivox.xyz"
+EXPECTED_HOSTNAME = "compivox.xyz,www.compivox.xyz"

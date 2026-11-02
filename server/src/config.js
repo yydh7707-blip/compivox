@@ -9,6 +9,7 @@ export function loadConfig(overrides = {}) {
     publicUrl: env.PUBLIC_URL || "http://localhost:8080",
     dbPath: env.DATABASE_PATH || "./data/compivox.db",
     jwtKey: env.JWT_SIGNING_KEY || "",
+    edgeProxySecret: env.EDGE_PROXY_SECRET || "",
     accessTtlSec: int(env.ACCESS_TOKEN_TTL_SEC, 15 * 60),
     refreshTtlSec: int(env.REFRESH_TOKEN_TTL_SEC, 30 * 24 * 3600),
     ipApiKey: env.IP_INTELLIGENCE_API_KEY || "",
@@ -35,5 +36,6 @@ export function loadConfig(overrides = {}) {
 export function configIssues(c) {
   const out = [];
   if (c.jwtKey.length < 32) out.push("JWT_SIGNING_KEY (32+ chars)");
+  if (c.nodeEnv === "production" && c.edgeProxySecret.length < 32) out.push("EDGE_PROXY_SECRET (32+ chars)");
   return out;
 }

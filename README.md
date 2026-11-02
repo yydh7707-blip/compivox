@@ -15,19 +15,22 @@ cd web
 python -m http.server 8080
 ```
 
-## API 확인
+## API 및 사람 확인
 
 ```powershell
 cd api
+npm install
+npm run migrate:local
 npx wrangler dev
 ```
 
 ## 배포
 
-- 웹: Render에서 `render.yaml`로 정적 사이트 생성
-- API: `cd api; npx wrangler deploy`
+- 웹과 API: Cloudflare Worker가 정적 웹과 API 게이트웨이를 함께 제공합니다.
+- Worker는 Cloudflare Turnstile을 서버에서 확인하고, 짧은 수명의 일회용 확인을 D1에 저장합니다.
+- 계정·기기 데이터는 기존 Render SQLite 데이터베이스에 유지됩니다. Worker는 공유 비밀 헤더로만 Render API에 전달하며, 공개 요청은 Worker에서 검증합니다.
+- `docs/cloudflare-deploy-ko.md`에 D1, 비밀값, Render 원본 보호 및 도메인 연결 절차가 있습니다.
 
 ## Accounts backend (server/)
 
-Zero-framework Node 24 server (SQLite via node:sqlite) that serves web/ and /api. Run: cd server; npm install; set JWT_SIGNING_KEY (32+ chars) and IP_TRUST for your proxy; node src/index.js. Accounts use an ID and password. Sign-up and sign-in require the user to type the IP address detected by the server. The Cloudflare-style checkbox is visual only; password recovery is available only through the signed-in account page.
-Deploy as a Render Node web service (see render.yaml), not a static site. The database is migrated in place: existing email accounts are assigned an ID from the email name and can continue signing in with their existing email during transition.
+The Node 24 / SQLite service remains the private account-data origin to preserve existing accounts. It is not a public application endpoint: production startup requires `EDGE_PROXY_SECRET`, and requests are accepted only from the Cloudflare Worker. Accounts use an ID and password, and sign-up/sign-in require confirming the IP observed by the server.

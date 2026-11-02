@@ -1,9 +1,10 @@
-import { readFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { now, event } from "./db.js";
 import { ApiError, createServices } from "./services.js";
 import { normalizeIp } from "./ip.js";
-import { randomToken } from "./crypto.js";
+import { randomToken, safeEqual } from "./crypto.js";
 import { loadPolicies } from "./risk.js";
 import { redact, secretValues } from "./secrets.js";
 
@@ -20,7 +21,7 @@ const SEC_HEADERS = {
   "x-frame-options": "DENY",
   "referrer-policy": "strict-origin-when-cross-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
-  "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 };
 
 function send(res, status, obj, extra = {}) {
@@ -300,6 +301,23 @@ export function createApp(deps) {
     const file = resolve(webRoot, "." + rel);
     if (file !== webRoot && !file.startsWith(webRoot + sep)) { res.writeHead(403, SEC_HEADERS); return res.end(); }
     try {
+      if (rel.startsWith("/downloads/")) {
+        const info = await stat(file);
+        const ext = extname(file);
+        res.writeHead(200, {
+          "content-type": MIME[ext] || "application/octet-stream",
+          "content-length": info.size,
+          "cache-control": "public, max-age=3600",
+          ...SEC_HEADERS
+        });
+        if (req.method === "HEAD") return res.end();
+        const stream = createReadStream(file);
+        stream.on("error", (e) => {
+          console.error("download_stream", redact(e?.message, secretValues(deps.cfg)));
+          res.destroy();
+        });
+        return stream.pipe(res);
+      }
       const data = await readFile(file);
       const ext = extname(file);
       res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream", "cache-control": [".html", ".js", ".css"].includes(ext) ? "no-cache" : "public, max-age=3600", ...SEC_HEADERS });
@@ -313,6 +331,10 @@ export function createApp(deps) {
   return async function handler(req, res) {
     const url = new URL(req.url, "http://x");
     const pathname = url.pathname;
+    if (cfg.nodeEnv === "production" && pathname !== "/api/health" &&
+        !safeEqual(req.headers["x-compivox-edge-auth"] || "", cfg.edgeProxySecret)) {
+      return send(res, 403, { error: "edge_proxy_required" });
+    }
     if (!pathname.startsWith("/api/")) {
       if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, SEC_HEADERS); return res.end(); }
       return serveStatic(req, res, pathname);

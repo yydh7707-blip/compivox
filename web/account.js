@@ -10,6 +10,9 @@
       remember: "Keep me signed in on this browser", noacc: "Create an account", haveacc: "I already have an account",
       register: "Create account", registerSub: "Create an ID for the website and Windows app.", pwHint: "ID: 3–32 letters, numbers, dots, underscores or hyphens. Password: at least 10 characters.",
       newPw: "New password", ts_verified: "Verified", ts_prompt: "Verify you are human", ts_required: "Complete the verification first.",
+      verifying: "Checking verification…", ts_expired: "Verification expired. Please try again.",
+      ts_failed: "Verification failed. Please try again.", ts_unavailable: "Human verification is unavailable.",
+      ipConfirmed: "IP confirmed. Complete the human check again and submit to continue.",
       ipT: "Confirm your network", ipBody: "Your current IP address is shown below. Type it to confirm and continue.", ipYour: "Your IP", ipType: "Type your IP address", ipBtn: "Confirm network",
       overview: "Overview", account: "My Account", devices: "My Devices", security: "Security", plan: "My Plan", downloads: "Downloads", settings: "Settings", signout: "Sign out",
       emailL: "COMPIVOX ID", planL: "Plan", devCount: "Devices", builds: "Builds this month", unlimited: "Unlimited",
@@ -34,6 +37,9 @@
       remember: "이 브라우저에서 로그인 유지", noacc: "계정 만들기", haveacc: "이미 계정이 있어요",
       register: "계정 만들기", registerSub: "웹사이트와 Windows 앱에서 사용할 아이디를 만드세요.", pwHint: "아이디: 영문, 숫자, 점, 밑줄, 하이픈 3~32자. 비밀번호: 10자 이상.",
       newPw: "새 비밀번호", ts_verified: "확인됨", ts_prompt: "사람인지 확인하세요", ts_required: "먼저 인증을 완료하세요.",
+      verifying: "인증을 확인하는 중…", ts_expired: "인증이 만료되었습니다. 다시 시도하세요.",
+      ts_failed: "인증에 실패했습니다. 다시 시도하세요.", ts_unavailable: "사람 확인을 사용할 수 없습니다.",
+      ipConfirmed: "IP 확인이 완료되었습니다. 인증을 다시 완료한 뒤 제출해 주세요.",
       ipT: "네트워크 확인", ipBody: "현재 IP 주소가 아래에 표시됩니다. 입력해서 확인하고 계속하세요.", ipYour: "내 IP", ipType: "IP 주소 입력", ipBtn: "네트워크 확인",
       overview: "개요", account: "내 계정", devices: "내 기기", security: "보안", plan: "내 요금제", downloads: "다운로드", settings: "설정", signout: "로그아웃",
       emailL: "COMPIVOX 아이디", planL: "요금제", devCount: "기기", builds: "이번 달 빌드", unlimited: "무제한",
@@ -107,33 +113,69 @@
     } catch (_) { return false; }
   }
 
-  /* Visual Cloudflare-style check; account access is protected by the server-verified IP step. */
-  function turnstileBox() {
+  var turnstileLoad;
+  var turnstileConfig;
+  function loadTurnstile() {
+    if (window.turnstile) return Promise.resolve();
+    if (!turnstileLoad) turnstileLoad = new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = function () { turnstileLoad = null; reject(new Error("turnstile")); };
+      document.head.appendChild(script);
+    });
+    return turnstileLoad;
+  }
+
+  function turnstileBox(action) {
     var box = el("div", { class: "ts-box" });
     var stateEl = el("div", { class: "ts-state", "aria-live": "polite" }, "");
-    var visualCheck = null;
+    var widgetId = null;
     var h = { token: null, node: el("div", { class: "ts-wrap" }, box, stateEl), reset: function () {
       h.token = null;
-      if (visualCheck) { visualCheck.setAttribute("aria-pressed", "false"); visualCheck.querySelector(".ts-checkbox").textContent = ""; }
-      set("", null);
+      set("", "");
+      if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
     } };
-    function set(cls, key) { stateEl.className = "ts-state " + cls; stateEl.textContent = key ? t(key) : ""; }
-    visualCheck = el("button", { type: "button", class: "ts-visual-check", "aria-pressed": "false", onclick: function () {
-      h.token = h.token ? null : "visual";
-      visualCheck.setAttribute("aria-pressed", h.token ? "true" : "false");
-      visualCheck.querySelector(".ts-checkbox").textContent = h.token ? "✓" : "";
-      set(h.token ? "verified" : "", h.token ? "ts_verified" : null);
-    } },
-    el("span", { class: "ts-checkbox", "aria-hidden": "true" }),
-    el("span", { class: "ts-prompt" }, t("ts_prompt")),
-    el("span", { class: "ts-brand" },
-      el("svg", { viewBox: "0 0 64 40", "aria-hidden": "true" },
-        el("path", { d: "M32 2 4 14l7 10 5 1-4 8h19l4-7 6 1-2-9 10-5z", fill: "#f38020" }),
-        el("path", { d: "m36 17 20-7-3 9-15 5z", fill: "#faad3f" })),
-      el("span", null, "Cloudflare"),
-      el("small", null, "Privacy · Terms")));
-    box.appendChild(visualCheck);
-    set("", null);
+    function set(cls, text) { stateEl.className = "ts-state " + cls; stateEl.textContent = text; }
+    async function verify(token) {
+      h.token = null;
+      set("pending", t("verifying"));
+      try {
+        var response = await fetch("/api/security/turnstile-verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token: token, action: action })
+        });
+        var result = await response.json();
+        if (!response.ok || !result.verificationId) throw new Error(result.error || "verification_failed");
+        h.token = result.verificationId;
+        set("verified", t("ts_verified"));
+      } catch (e) {
+        set("error", errMsg(e.message === "Failed to fetch" ? "network" : e.message));
+        if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
+      }
+    }
+
+    Promise.resolve().then(async function () {
+      if (!turnstileConfig) {
+        var response = await fetch("/api/security/turnstile-config", { cache: "no-store" });
+        if (!response.ok) throw new Error("configuration_error");
+        turnstileConfig = await response.json();
+      }
+      if (!turnstileConfig.turnstileSiteKey) throw new Error("configuration_error");
+      await loadTurnstile();
+      if (!window.turnstile) throw new Error("turnstile");
+      widgetId = window.turnstile.render(box, {
+        sitekey: turnstileConfig.turnstileSiteKey,
+        action: action,
+        callback: function (token) { void verify(token); },
+        "expired-callback": function () { h.token = null; set("error", t("ts_expired")); },
+        "error-callback": function () { h.token = null; set("error", t("ts_failed")); }
+      });
+    }).catch(function () {
+      set("error", t("ts_unavailable"));
+    });
     return h;
   }
 
@@ -155,21 +197,22 @@
 
   function link(text, fn) { return el("button", { type: "button", class: "btn ghost small", onclick: fn }, text); }
 
-  async function guarded(p, btn, fn) {
+  async function guarded(p, btn, fn, verification) {
     btn.disabled = true;
     try { await fn(); }
     catch (e) {
-      if (e.code === "ip_verification_required") { showIp(p, fn); }
+      if (e.code === "ip_verification_required") { showIp(p); }
       else p.say(errMsg(e.code));
+      if (verification) verification.reset();
     }
     btn.disabled = false;
   }
 
-  function showIp(p, retry) {
+  function showIp(p) {
     var wrap = el("div", { class: "ip-box" });
     var ipVal = el("b", null, "…");
     var inp = el("input", { type: "text", placeholder: t("ipType"), autocomplete: "off", inputmode: "text" });
-    var ts = turnstileBox();
+    var ts = turnstileBox("ip_verify");
     var btn = el("button", { type: "button", class: "btn primary block" }, t("ipBtn"));
     wrap.append(el("h3", null, t("ipT")), el("p", null, t("ipBody")), el("p", null, t("ipYour") + ": ", ipVal), el("label", { class: "field" }, el("span", null, t("ipType")), inp), ts.node, btn);
     p.insertBefore(wrap, p.alert.nextSibling);
@@ -178,9 +221,8 @@
       btn.disabled = true;
       try {
         if (!ts.token) throw new Error("verification_required");
-        var r = await api("POST", "/security/ip-verify", { ip: inp.value.trim(), turnstileToken: ts.token });
-        state.ipToken = r.ipToken; wrap.remove(); p.say("");
-        await retry();
+        var r = await api("POST", "/security/ip-verify", { ip: inp.value.trim(), verificationId: ts.token });
+        state.ipToken = r.ipToken; ts.reset(); wrap.remove(); p.say(t("ipConfirmed"), "ok");
       } catch (e) { p.say(e.message === "verification_required" ? t("ts_required") : errMsg(e.code)); ts.reset(); }
       btn.disabled = false;
     });
@@ -190,7 +232,7 @@
     var p = panel(t("signin"), t("signinSub"));
     var em = field(t("username"), "text", "username", { value: state.username, maxlength: "254", autocomplete: "username" });
     var pw = field(t("password"), "password", "password");
-    var ts = turnstileBox();
+    var ts = turnstileBox("login");
     var btn = el("button", { type: "submit", class: "btn primary block" }, t("signin"));
     var form = el("form", { novalidate: "novalidate" }, em.node, pw.node, ts.node, btn);
     form.addEventListener("submit", function (ev) {
@@ -198,11 +240,11 @@
       state.username = em.input.value.trim();
       if (!ts.token) { p.say(t("ts_required")); return; }
       guarded(p, btn, async function () {
-        var d = await api("POST", "/auth/login", { username: state.username, password: pw.input.value, client: "web", turnstileToken: ts.token, ipToken: state.ipToken }, { noRefresh: true });
+        var d = await api("POST", "/auth/login", { username: state.username, password: pw.input.value, client: "web", verificationId: ts.token, ipToken: state.ipToken }, { noRefresh: true });
         access = d.accessToken; me = d; state.ipToken = null;
         enterDash();
         ts.reset();
-      }).catch(function () {});
+      }, ts).catch(function () {});
     });
     p.append(form, el("div", { class: "row-links" }, link(t("noacc"), function () { state.view = "register"; render(); })));
     mount(p);
@@ -214,7 +256,7 @@
     var em = field(t("username"), "text", "username", { value: state.username, maxlength: "32", autocomplete: "username" });
     var pw = field(t("password"), "password", "password", { autocomplete: "new-password" });
     var pw2 = field(t("confirm"), "password", "confirm", { autocomplete: "new-password" });
-    var ts = turnstileBox();
+    var ts = turnstileBox("register");
     var btn = el("button", { type: "submit", class: "btn primary block" }, t("register"));
     var form = el("form", { novalidate: "novalidate" }, em.node, pw.node, pw2.node, el("p", { class: "sub" }, t("pwHint")), ts.node, btn);
     form.addEventListener("submit", function (ev) {
@@ -222,9 +264,9 @@
       state.username = em.input.value.trim();
       if (!ts.token) { p.say(t("ts_required")); return; }
       guarded(p, btn, async function () {
-        var d = await api("POST", "/auth/register", { username: state.username, password: pw.input.value, confirmPassword: pw2.input.value, turnstileToken: ts.token, ipToken: state.ipToken });
+        var d = await api("POST", "/auth/register", { username: state.username, password: pw.input.value, confirmPassword: pw2.input.value, verificationId: ts.token, ipToken: state.ipToken });
         access = d.accessToken; me = d; state.ipToken = null; ts.reset(); enterDash();
-      });
+      }, ts);
     });
     p.append(form, el("div", { class: "row-links" }, link(t("haveacc"), function () { state.view = "login"; render(); })));
     mount(p);
@@ -345,13 +387,14 @@
     var p = panel(t("linkT"), t("linkBody"));
     p.style.marginTop = "24px";
     var nm = field(t("deviceName"), "text", "name", { value: name, maxlength: "60", autocomplete: "off" });
-    var ts = turnstileBox();
+    var ts = turnstileBox("device_register");
     var btn = el("button", { type: "button", class: "btn primary block" }, t("linkBtn"));
     btn.addEventListener("click", function () {
+      if (!ts.token) { p.say(t("ts_required")); return; }
       guarded(p, btn, async function () {
-        await api("POST", "/devices/register", { deviceId: deviceId, name: nm.input.value, turnstileToken: ts.token, ipToken: state.ipToken });
+        await api("POST", "/devices/register", { deviceId: deviceId, name: nm.input.value, verificationId: ts.token, ipToken: state.ipToken });
         state.ipToken = null; p.say(t("linked"), "ok");
-      }).then(function () { ts.reset(); });
+      }, ts).then(function () { ts.reset(); });
     });
     p.append(nm.node, ts.node, btn);
     return p;

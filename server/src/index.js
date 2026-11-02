@@ -11,6 +11,10 @@ if (cfg.jwtKey.length < 32) {
   console.error("FATAL: JWT_SIGNING_KEY must be set (32+ characters). Refusing to start without it.");
   process.exit(1);
 }
+if (cfg.nodeEnv === "production" && cfg.edgeProxySecret.length < 32) {
+  console.error("FATAL: EDGE_PROXY_SECRET must be set (32+ characters). Refusing to start without the Cloudflare Worker.");
+  process.exit(1);
+}
 for (const i of issues) console.warn(`CONFIG MISSING: ${i}`);
 
 const db = openDb(cfg.dbPath);

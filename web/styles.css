@@ -275,17 +275,11 @@ button:active, .btn:active { transform: scale(0.98); }
 .alert.ok { background: rgba(127,203,154,0.1); color: var(--ok); border-color: rgba(127,203,154,0.35); }
 .alert.info { background: var(--beige); color: var(--ink-2); border-color: var(--line); }
 .alert:empty { display: none; }
-.ts-box { width: min(100%, 320px); min-height: 74px; display: flex; align-items: center; border: 1px solid #d5d7dc; border-radius: 3px; padding: 6px 10px; background: #fafafa; color: #24292f; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.ts-visual-check { width: 100%; min-height: 60px; display: grid; grid-template-columns: 28px minmax(0,1fr) 92px; align-items: center; gap: 10px; border: 0; padding: 0; color: #24292f; background: transparent; text-align: left; cursor: pointer; font: 14px Arial, sans-serif; }
-.ts-checkbox { width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid #6b7178; border-radius: 2px; color: white; font-size: 18px; line-height: 1; background: white; }
-.ts-visual-check[aria-pressed="true"] .ts-checkbox { border-color: #16803c; background: #16803c; }
-.ts-prompt { line-height: 1.25; }
-.ts-brand { display: grid; justify-items: center; align-content: center; gap: 1px; color: #555b62; font: 10px Arial, sans-serif; white-space: nowrap; }
-.ts-brand svg { display: block; width: 40px; height: 25px; }
-.ts-brand small { font-size: 8px; color: #6d7278; }
+.ts-box { width: min(100%, 320px); min-height: 66px; display: flex; align-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
 .ts-state { min-height: 16px; font-size: 12px; color: var(--muted); margin: 4px 2px 0; display: flex; align-items: center; gap: 6px; }
 .ts-state.verified { color: var(--ok); }
-.ts-state.failed { color: var(--err); }
+.ts-state.error { color: var(--err); }
+.ts-state.pending { color: var(--muted); }
 .ip-box { text-align: center; background: var(--beige); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
 .ip-box small { display: block; font-size: 11px; letter-spacing: 0.14em; color: var(--gold-deep); font-weight: 600; }
 .ip-box code { font-size: 1.25rem; font-weight: 700; color: var(--ink); word-break: break-all; }

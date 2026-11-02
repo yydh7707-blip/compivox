@@ -21,13 +21,13 @@
       <li>Security events and build counts for plan limits. / 보안 이벤트와 요금제 한도를 위한 빌드 횟수.</li>
     </ul>
     <h2>2. Why / 사용 목적</h2>
-    <p>Authentication, abuse prevention, network risk assessment, device and plan limits, and sending verification emails. / 인증, 남용 방지, 네트워크 위험 평가, 기기·요금제 한도 적용, 인증 이메일 발송.</p>
+    <p>Authentication, abuse prevention, network risk assessment, and device and plan limits. / 인증, 남용 방지, 네트워크 위험 평가, 기기·요금제 한도 적용.</p>
     <h2>3. Third parties / 제3자</h2>
     <ul>
       <li>Cloudflare Turnstile — receives challenge data from your browser and your IP when verifying. / 확인 시 브라우저의 챌린지 데이터와 IP를 처리합니다.</li>
       <li>IP intelligence provider (ipapi.is, when enabled) — receives your IP address to classify the network. / 활성화된 경우 네트워크 분류를 위해 IP 주소를 전달받습니다.</li>
-      <li>Email (SMTP) provider — receives your email address and the message to send codes. / 코드 발송을 위해 이메일 주소와 메시지를 전달받습니다.</li>
-      <li>Hosting provider (Render) and, if used, Cloudflare proxy. / 호스팅 제공자(Render) 및 사용 시 Cloudflare 프록시.</li>
+      <li>Render — stores account data and serves the private account API. / 계정 데이터를 저장하고 비공개 계정 API를 제공합니다.</li>
+      <li>Cloudflare Worker and D1 — serve the website and API gateway, verify Turnstile challenges, and store short-lived verification records and rate limits. / 웹사이트와 API 게이트웨이를 제공하고 Turnstile을 확인하며, 단기 인증 기록과 요청 제한 정보를 저장합니다.</li>
     </ul>
     <h2>4. Retention and deletion / 보관 및 삭제</h2>
     <p>Network assessments are cached for 6 hours. Device registrations by IP are kept for 90 days. Contact us to request deletion of your account data. / 네트워크 평가는 6시간 캐시되며, IP별 기기 등록 기록은 90일간 유지됩니다. 계정 데이터 삭제는 문의를 통해 요청하세요.</p>
