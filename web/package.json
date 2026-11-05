@@ -1,0 +1,14 @@
+{
+  "name": "compivox-restaurant-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild restaurant-app.js --bundle --platform=browser --target=es2020 --outfile=restaurant-app.bundle.js"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

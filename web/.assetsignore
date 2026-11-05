@@ -1,1 +1,6 @@
 /downloads/
+/node_modules/
+/package.json
+/package-lock.json
+/restaurant-app.js
+/restaurant-app.bundle.js.map
