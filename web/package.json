@@ -1,13 +1,11 @@
 {
-  "name": "compivox-restaurant-demo",
+  "name": "compivox-keyrush",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild restaurant-app.js --bundle --platform=browser --target=es2020 --outfile=restaurant-app.bundle.js"
+    "build": "esbuild keyrush.js --bundle --platform=browser --target=es2020 --outfile=keyrush.bundle.js"
   },
-  "dependencies": {
-    "qrcode": "1.5.4"
-  },
+  "dependencies": {},
   "devDependencies": {
     "esbuild": "0.25.0"
   }

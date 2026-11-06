@@ -1,3 +1,5 @@
+import { handleKeyRush } from "./keyrush.js";
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -38,16 +40,23 @@ function clientIp(request) {
   return request.headers.get("cf-connecting-ip") ?? "unknown";
 }
 
+function allowedOrigins(env) {
+  const origins = csv(env.WEB_ORIGIN);
+  if (env.ENVIRONMENT === "development") origins.push(...csv(env.KEYRUSH_DEV_ORIGINS));
+  return origins;
+}
+
 function originAllowed(request, env) {
   const origin = request.headers.get("origin");
-  return !origin || csv(env.WEB_ORIGIN).includes(origin);
+  return !origin || allowedOrigins(env).includes(origin);
 }
 
 function corsHeaders(request, env) {
   const origin = request.headers.get("origin");
-  return origin && csv(env.WEB_ORIGIN).includes(origin)
+  return origin && allowedOrigins(env).includes(origin)
     ? {
         "access-control-allow-origin": origin,
+        "access-control-allow-credentials": "true",
         "access-control-allow-headers": "content-type, authorization",
         "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
         vary: "Origin",
@@ -240,6 +249,7 @@ async function handle(request, env) {
 
   if (url.pathname.startsWith("/api/")) {
     if (!originAllowed(request, env)) return error("bad_origin", 403);
+    if (url.pathname.startsWith("/api/keyrush/")) return handleKeyRush(request, env);
     if (!configReady(env)) return error("configuration_error", 503);
     if (request.method === "GET" && url.pathname === "/api/security/turnstile-config") {
       return json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY }, 200, corsHeaders(request, env));
