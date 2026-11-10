@@ -135,7 +135,19 @@ function header(active = "") {
 }
 
 function shell(content, active = "") {
-  return `<div class="shell">${header(active)}<main class="wrap">${content}</main></div>`;
+  return `<div class="shell">${header(active)}<main class="wrap">${content}</main>
+    <footer class="site-footer">
+      ${brand()}
+      <p>짧은 한 판으로 만드는 나만의 키 리듬.</p>
+      <nav class="footer-links" aria-label="안내">
+        <a href="/faq">자주 묻는 질문</a>
+        <a href="/service-information">서비스 안내</a>
+        <a href="/terms">이용약관</a>
+        <a href="/privacy">개인정보 처리방침</a>
+      </nav>
+      <span class="footer-copy">© ${new Date().getFullYear()} COMPIVOX</span>
+    </footer>
+  </div>`;
 }
 
 function mapCard(map, editable = false) {
@@ -158,6 +170,30 @@ function renderHome() {
         <div class="hero-actions"><a class="btn btn-primary" href="#/maps">플레이 시작 <span aria-hidden="true">→</span></a><a class="btn btn-secondary" href="#/rankings">랭킹 보기</a></div>
       </div>
       <div class="hero-art" aria-hidden="true"><div class="hero-key">K</div></div>
+    </section>
+    <section class="home-path" aria-labelledby="homePathTitle">
+      <div class="home-section-head">
+        <span class="eyebrow">YOUR NEXT ROUND</span>
+        <h2 id="homePathTitle">시작은 간단하게, 기록은 확실하게</h2>
+        <p>맵 도전부터 랭킹 확인까지 한 흐름으로 이어져요.</p>
+      </div>
+      <div class="path-grid">
+        <article class="path-card"><span class="path-number">01</span><div><h3>맵 고르기</h3><p>패턴과 BPM을 확인하고 오늘의 도전을 선택해요.</p></div></article>
+        <article class="path-card"><span class="path-number">02</span><div><h3>리듬에 맞춰 입력</h3><p>키보드 또는 터치로 화면에 나오는 키를 입력해요.</p></div></article>
+        <article class="path-card"><span class="path-number">03</span><div><h3>기록 확인하기</h3><p>완료한 플레이는 검증 후 개인 기록과 랭킹에 반영돼요.</p></div></article>
+      </div>
+    </section>
+    <section class="home-modes" aria-label="플레이 방식">
+      <a class="mode-card" href="#/maps" data-action="set-mode" data-mode="keyboard">
+        <span class="mode-icon" aria-hidden="true">⌨</span>
+        <span><strong>Keyboard</strong><small>빠른 입력과 정확도를 겨뤄요</small></span>
+        <span class="mode-arrow" aria-hidden="true">↗</span>
+      </a>
+      <a class="mode-card" href="#/maps" data-action="set-mode" data-mode="touch">
+        <span class="mode-icon touch-icon" aria-hidden="true">●</span>
+        <span><strong>Touch</strong><small>모바일에서도 바로 플레이해요</small></span>
+        <span class="mode-arrow" aria-hidden="true">↗</span>
+      </a>
     </section>
     <section class="hero-stats" aria-label="내 KeyRush 기록">
       <div class="stat"><div class="stat-label">공식 맵</div><div class="stat-value">${state.maps.length}</div></div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111214">
+  <meta name="theme-color" content="#101113">
   <meta name="description" content="Compivox: KeyRush — 키 입력 리듬을 익히고, 기록으로 경쟁하세요.">
   <title>Compivox: KeyRush</title>
   <link rel="icon" type="image/png" href="/compivox-icon.png">
@@ -11,7 +11,14 @@
   <script type="module" src="/keyrush.bundle.js"></script>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <main class="loading-screen" role="status" aria-live="polite">
+      <span class="loading-mark" aria-hidden="true">K</span>
+      <span class="loading-title">KEYRUSH</span>
+      <span class="loading-copy">게임 데이터를 불러오고 있어요</span>
+      <span class="spinner" aria-hidden="true"></span>
+    </main>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

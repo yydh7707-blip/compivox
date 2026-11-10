@@ -125,7 +125,19 @@
   </header>`;
   }
   function shell(content, active = "") {
-    return `<div class="shell">${header(active)}<main class="wrap">${content}</main></div>`;
+    return `<div class="shell">${header(active)}<main class="wrap">${content}</main>
+    <footer class="site-footer">
+      ${brand()}
+      <p>\uC9E7\uC740 \uD55C \uD310\uC73C\uB85C \uB9CC\uB4DC\uB294 \uB098\uB9CC\uC758 \uD0A4 \uB9AC\uB4EC.</p>
+      <nav class="footer-links" aria-label="\uC548\uB0B4">
+        <a href="/faq">\uC790\uC8FC \uBB3B\uB294 \uC9C8\uBB38</a>
+        <a href="/service-information">\uC11C\uBE44\uC2A4 \uC548\uB0B4</a>
+        <a href="/terms">\uC774\uC6A9\uC57D\uAD00</a>
+        <a href="/privacy">\uAC1C\uC778\uC815\uBCF4 \uCC98\uB9AC\uBC29\uCE68</a>
+      </nav>
+      <span class="footer-copy">\xA9 ${(/* @__PURE__ */ new Date()).getFullYear()} COMPIVOX</span>
+    </footer>
+  </div>`;
   }
   function mapCard(map, editable = false) {
     const difficulty = { easy: "EASY", normal: "NORMAL", hard: "HARD", expert: "EXPERT" }[map.difficulty] ?? map.difficulty;
@@ -146,6 +158,30 @@
         <div class="hero-actions"><a class="btn btn-primary" href="#/maps">\uD50C\uB808\uC774 \uC2DC\uC791 <span aria-hidden="true">\u2192</span></a><a class="btn btn-secondary" href="#/rankings">\uB7AD\uD0B9 \uBCF4\uAE30</a></div>
       </div>
       <div class="hero-art" aria-hidden="true"><div class="hero-key">K</div></div>
+    </section>
+    <section class="home-path" aria-labelledby="homePathTitle">
+      <div class="home-section-head">
+        <span class="eyebrow">YOUR NEXT ROUND</span>
+        <h2 id="homePathTitle">\uC2DC\uC791\uC740 \uAC04\uB2E8\uD558\uAC8C, \uAE30\uB85D\uC740 \uD655\uC2E4\uD558\uAC8C</h2>
+        <p>\uB9F5 \uB3C4\uC804\uBD80\uD130 \uB7AD\uD0B9 \uD655\uC778\uAE4C\uC9C0 \uD55C \uD750\uB984\uC73C\uB85C \uC774\uC5B4\uC838\uC694.</p>
+      </div>
+      <div class="path-grid">
+        <article class="path-card"><span class="path-number">01</span><div><h3>\uB9F5 \uACE0\uB974\uAE30</h3><p>\uD328\uD134\uACFC BPM\uC744 \uD655\uC778\uD558\uACE0 \uC624\uB298\uC758 \uB3C4\uC804\uC744 \uC120\uD0DD\uD574\uC694.</p></div></article>
+        <article class="path-card"><span class="path-number">02</span><div><h3>\uB9AC\uB4EC\uC5D0 \uB9DE\uCDB0 \uC785\uB825</h3><p>\uD0A4\uBCF4\uB4DC \uB610\uB294 \uD130\uCE58\uB85C \uD654\uBA74\uC5D0 \uB098\uC624\uB294 \uD0A4\uB97C \uC785\uB825\uD574\uC694.</p></div></article>
+        <article class="path-card"><span class="path-number">03</span><div><h3>\uAE30\uB85D \uD655\uC778\uD558\uAE30</h3><p>\uC644\uB8CC\uD55C \uD50C\uB808\uC774\uB294 \uAC80\uC99D \uD6C4 \uAC1C\uC778 \uAE30\uB85D\uACFC \uB7AD\uD0B9\uC5D0 \uBC18\uC601\uB3FC\uC694.</p></div></article>
+      </div>
+    </section>
+    <section class="home-modes" aria-label="\uD50C\uB808\uC774 \uBC29\uC2DD">
+      <a class="mode-card" href="#/maps" data-action="set-mode" data-mode="keyboard">
+        <span class="mode-icon" aria-hidden="true">\u2328</span>
+        <span><strong>Keyboard</strong><small>\uBE60\uB978 \uC785\uB825\uACFC \uC815\uD655\uB3C4\uB97C \uACA8\uB904\uC694</small></span>
+        <span class="mode-arrow" aria-hidden="true">\u2197</span>
+      </a>
+      <a class="mode-card" href="#/maps" data-action="set-mode" data-mode="touch">
+        <span class="mode-icon touch-icon" aria-hidden="true">\u25CF</span>
+        <span><strong>Touch</strong><small>\uBAA8\uBC14\uC77C\uC5D0\uC11C\uB3C4 \uBC14\uB85C \uD50C\uB808\uC774\uD574\uC694</small></span>
+        <span class="mode-arrow" aria-hidden="true">\u2197</span>
+      </a>
     </section>
     <section class="hero-stats" aria-label="\uB0B4 KeyRush \uAE30\uB85D">
       <div class="stat"><div class="stat-label">\uACF5\uC2DD \uB9F5</div><div class="stat-value">${state.maps.length}</div></div>
