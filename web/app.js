@@ -88,6 +88,25 @@ const featureDefs = [
   ["device","touch","touchTitle","touchDesc","mouse"],["nfc","nfc-access","nfcAccessTitle","nfcAccessDesc","nfc"],
   ["nfc","nfc-scan","nfcScanTitle","nfcScanDesc","nfc"],["nfc","nfc-info","nfcInfoTitle","nfcInfoDesc","phone"]
 ];
+const dialCategories = [
+  {id:"network",label:"NETWORK",icon:"globe",features:["ip","speed","stability","ipv","dns","propagation","response","https","quality","gaming","streaming","disconnect"]},
+  {id:"device",label:"DEVICE",icon:"phone",features:["info","compat"]},
+  {id:"display",label:"DISPLAY",icon:"screen",features:["refresh","frame","color","pixel","orientation"]},
+  {id:"touch",label:"TOUCH",icon:"touch",features:["touch","multi"]},
+  {id:"nfc",label:"NFC",icon:"nfc",features:["nfc-access","nfc-scan","nfc-info"]},
+  {id:"results",label:"RESULTS",icon:"chart",features:[]}
+];
+const dialCopy = {
+  en:{network:"Internet & connection",networkDesc:"Explore network diagnostic tools.",device:"Device information",deviceDesc:"Review device and browser capabilities.",display:"Display diagnostics",displayDesc:"Inspect refresh, color, and screen behavior.",touch:"Touch & input",touchDesc:"Test touch points and pointer input.",nfc:"NFC access",nfcDesc:"Open NFC access tools and tag information.",results:"Your results",resultsDesc:"Review previous tests and saved reports.",select:"Explore category",hint:"Drag to rotate · Scroll or use ← → · Enter to select",all:"All categories",previous:"Previous tests",saved:"Saved reports",share:"Share results"},
+  ko:{network:"인터넷 및 연결",networkDesc:"네트워크 진단 도구를 확인하세요.",device:"기기 정보",deviceDesc:"기기 및 브라우저 기능을 확인하세요.",display:"디스플레이 진단",displayDesc:"주사율, 색상, 화면 동작을 검사하세요.",touch:"터치 및 입력",touchDesc:"터치 지점과 포인터 입력을 검사하세요.",nfc:"NFC 액세스",nfcDesc:"NFC 액세스 도구와 태그 정보를 확인하세요.",results:"검사 결과",resultsDesc:"이전 검사와 저장된 보고서를 확인하세요.",select:"카테고리 열기",hint:"드래그하여 회전 · 휠 또는 ← → · Enter로 선택",all:"전체 카테고리",previous:"이전 검사",saved:"저장된 보고서",share:"결과 공유"},
+  ja:{network:"インターネットと接続",networkDesc:"ネットワーク診断ツールを確認します。",device:"デバイス情報",deviceDesc:"デバイスとブラウザーの機能を確認します。",display:"ディスプレイ診断",displayDesc:"リフレッシュレート、色、画面動作を確認します。",touch:"タッチと入力",touchDesc:"タッチポイントとポインター入力を確認します。",nfc:"NFC アクセス",nfcDesc:"NFC アクセスツールとタグ情報を確認します。",results:"テスト結果",resultsDesc:"以前のテストと保存済みレポートを確認します。",select:"カテゴリを開く",hint:"ドラッグで回転 · ホイールまたは ← → · Enter で選択",all:"すべてのカテゴリ",previous:"以前のテスト",saved:"保存済みレポート",share:"結果を共有"},
+  zh:{network:"互联网与连接",networkDesc:"浏览网络诊断工具。",device:"设备信息",deviceDesc:"查看设备和浏览器功能。",display:"显示诊断",displayDesc:"检查刷新率、色彩和屏幕表现。",touch:"触控与输入",touchDesc:"测试触控点和指针输入。",nfc:"NFC 访问",nfcDesc:"查看 NFC 访问工具和标签信息。",results:"测试结果",resultsDesc:"查看以前的测试和已保存报告。",select:"浏览类别",hint:"拖动旋转 · 滚轮或 ← → · 按 Enter 选择",all:"所有类别",previous:"以前的测试",saved:"已保存报告",share:"分享结果"}
+};
+const dialCategoryLabels = {
+  ko:["네트워크","기기","디스플레이","터치","NFC","결과"],
+  ja:["ネットワーク","デバイス","ディスプレイ","タッチ","NFC","結果"],
+  zh:["网络","设备","显示","触控","NFC","结果"]
+};
 const dnsTypes = {A:1,AAAA:28,CNAME:5,MX:15,TXT:16,NS:2};
 const colorNames = ["keyRed","keyGreen","keyBlue","keyWhite","keyBlack","keyGray","keyGradient"];
 const colorValues = ["#ff0000","#00c000","#0000ff","#ffffff","#000000","#808080","linear-gradient(110deg,#eaf1ff,#789bff 42%,#00c5e8)"];
@@ -220,15 +239,15 @@ function renderSettingsPage(){
 }
 let current = null, activeController = null, stopLive = null, introTimer = null;
 const dialog = $("#testDialog");
-const assemblySelector = ".hero h1, .hero-line, .hero-note, .section-heading h2, .section-heading > p, .server-note, #accessNotice strong, #accessDescription, #dialogTitle, .result-card h3";
+const flowSelector = ".hero h1, .hero-line, .hero-note, .section-heading h2, .section-heading > p, #dialogTitle, #dialogDescription, #dialPanelTitle";
 let motionObserver = null;
-const assemblyRunIds = new WeakMap();
+const flowRunIds = new WeakMap();
 
 function trMarkup() {
   document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
   $$("[data-t]").forEach(el => {
     const val=t(el.dataset.t);
-    if(el.matches(assemblySelector)&&el.classList.contains("is-assembled")){setAssemblyText(el,val);el.classList.add("is-assembled");}
+    if(el.matches(flowSelector)&&el.classList.contains("flow-complete"))setFlowText(el,val);
     else el.textContent=val;
   });
   $$("[data-t-aria]").forEach(el => el.setAttribute("aria-label",t(el.dataset.tAria)));
@@ -239,81 +258,71 @@ function trMarkup() {
   renderSettingsPage();
   if(current) {
     $("#dialogCategory").textContent=t(current.group==="network"?"networkKicker":current.group==="device"?"deviceKicker":"nfcKicker");
-    setAssemblyText($("#dialogTitle"),t(current.title));
+    setFlowText($("#dialogTitle"),t(current.title));
     $("#dialogDescription").textContent=t(current.desc);
   }
 }
-function setAssemblyText(element,text=element.textContent) {
-  assemblyRunIds.set(element,(assemblyRunIds.get(element)||0)+1);
-  const value=String(text ?? "");
-  element.replaceChildren();
+function setFlowText(element,text=element.textContent) {
+  const value=String(text??"");
+  element.textContent=value;
   element.setAttribute("aria-label",value.replace(/\s+/g," ").trim());
-  const fragment=document.createDocumentFragment();
-  let word="",index=0;
-  const appendWord=()=>{
-    if(!word)return;
-    const wrapper=document.createElement("span");
-    wrapper.className="assembly-word";
-    for(const character of word){
-      const letter=document.createElement("span");
-      letter.className="assembly-letter";
-      letter.setAttribute("aria-hidden","true");
-      letter.textContent=character;
-      const phase=index++;
-      const angle=phase*2.399;
-      letter.style.setProperty("--flight-x",`${Math.round(Math.cos(angle)*44)}px`);
-      letter.style.setProperty("--flight-y",`${Math.round(Math.sin(angle)*32)}px`);
-      letter.style.setProperty("--flight-z",`${-180-(phase%4)*72}px`);
-      letter.style.setProperty("--flight-rotate",`${Math.round(Math.sin(angle)*30)}deg`);
-      letter.style.setProperty("--letter-delay",`${Math.min(phase*18,420)}ms`);
-      letter.style.setProperty("--reduced-delay",`${Math.min(phase*5,90)}ms`);
-      wrapper.append(letter);
-    }
-    fragment.append(wrapper);
-    word="";
-  };
-  for(const character of value){
-    if(character==="\n"){appendWord();fragment.append(document.createElement("br"));index+=2;}
-    else if(/\s/.test(character)){appendWord();fragment.append(document.createTextNode(character));index+=2;}
-    else if(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(character)){appendWord();word=character;appendWord();}
-    else word+=character;
-  }
-  appendWord();
-  element.append(fragment);
-  element.classList.remove("is-assembled","is-assembling");
 }
-function startAssembly(element) {
-  if(!element.isConnected||element.classList.contains("is-assembled"))return;
-  if(!element.querySelector(".assembly-letter"))setAssemblyText(element);
-  const runId=(assemblyRunIds.get(element)||0)+1;
-  assemblyRunIds.set(element,runId);
-  element.classList.add("is-assembling");
-  requestAnimationFrame(()=>element.classList.add("is-assembled"));
-  const duration=Math.min(1300,Math.max(820,520+element.querySelectorAll(".assembly-letter").length*18+500));
-  window.setTimeout(()=>{if(assemblyRunIds.get(element)===runId)element.classList.remove("is-assembling");},duration+100);
+function markFlowTargets() {
+  $$(flowSelector).forEach(element=>{
+    element.classList.add("flow-target");
+    if(!element.classList.contains("flow-complete"))element.classList.add("flow-pending");
+  });
+}
+function startFlow(element) {
+  if(!element.isConnected||element.classList.contains("flow-complete")||element.classList.contains("flow-entering"))return;
+  const runId=(flowRunIds.get(element)||0)+1;
+  flowRunIds.set(element,runId);
+  if(!preferences.animations||preferences.reduceMotion||matchMedia("(prefers-reduced-motion: reduce)").matches){
+    element.classList.add("flow-complete");
+    element.classList.remove("flow-pending");
+    return;
+  }
+  element.classList.add("flow-pending");
+  const finish=event=>{
+    if(event&&event.animationName!=="text-distance-flow")return;
+    if(flowRunIds.get(element)!==runId)return;
+    element.classList.remove("flow-pending","flow-entering");
+    element.classList.add("flow-complete");
+    element.removeEventListener("animationend",finish);
+  };
+  element.addEventListener("animationend",finish);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(flowRunIds.get(element)!==runId)return;
+    element.classList.add("flow-entering");
+  }));
+  window.setTimeout(()=>finish(),1450);
 }
 function startMotion() {
-  const reduced=!preferences.animations;
-  const targets=$$(assemblySelector);
+  const reduced=!preferences.animations||preferences.reduceMotion||matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const targets=$$(flowSelector);
+  markFlowTargets();
   $$(".feature-card, .result-card, .settings-card, .access-notice, .test-dialog .tool-fields, .test-dialog .result-grid").forEach((element,index)=>{
     element.classList.add("motion-reveal");
     element.style.setProperty("--reveal-delay",`${Math.min(index%6,5)*65}ms`);
   });
-  if(reduced){targets.forEach(element=>element.classList.add("is-assembled"));$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;}
+  if(reduced){targets.forEach(element=>element.classList.add("flow-complete"));$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;}
   if(!("IntersectionObserver" in window)){
-    targets.forEach(startAssembly);$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;
+    targets.forEach(startFlow);$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;
   }
+  targets.forEach(element=>{
+    if(!element.classList.contains("flow-complete"))element.classList.add("flow-pending");
+  });
   motionObserver=new IntersectionObserver(entries=>{
     for(const entry of entries){
       if(!entry.isIntersecting)continue;
       const element=entry.target;
-      if(element.matches(assemblySelector))startAssembly(element);
+      if(element.matches(flowSelector))startFlow(element);
       else element.classList.add("is-visible");
       motionObserver.unobserve(element);
     }
   },{threshold:.16,rootMargin:"0px 0px -36px 0px"});
   targets.forEach(element=>{
-    if(!element.classList.contains("is-assembled"))motionObserver.observe(element);
+    if(!element.classList.contains("flow-complete"))motionObserver.observe(element);
   });
   $$(".motion-reveal").forEach(element=>motionObserver.observe(element));
 }
@@ -329,6 +338,150 @@ function renderCards() {
     root.appendChild(button);
   }
   $$(".feature-card").forEach(card=>{const def=featureDefs.find(row=>row[1]===card.dataset.id);if(def){$("h3",card).textContent=t(def[2]);$("p",card).textContent=t(def[3]);}});
+  renderDial();
+  if(!$("#dialCategoryPanel").hidden)openDialCategory(selectedDialCategory().id,{fromHistory:true,scroll:false});
+}
+let dialIndex=0,dialAngle=0,dialDragging=false,dialMoved=false,dialLastPointerAngle=0,dialLastMoveTime=0,dialVelocity=0,dialWheelRemainder=0,dialDisplayedCategory="";
+let dialSnapTimer=0,dialCenterTimer=0;
+const dial = $("#rotaryDial");
+function dialText(key){return (dialCopy[lang]||dialCopy.en)[key]||dialCopy.en[key]||key;}
+function dialLabel(category){return (dialCategoryLabels[lang]||dialCategories.map(item=>item.label))[dialCategories.indexOf(category)];}
+function scheduleDialSnapEnd(){clearTimeout(dialSnapTimer);dialSnapTimer=window.setTimeout(()=>$("#dialRing").classList.remove("is-snapping"),480);}
+function renderDial(){
+  const ring=$("#dialRing"),ticks=$("#dialTicks"),nav=$("#dialAccessList");
+  if(!ring||!ticks||!nav)return;
+  ticks.replaceChildren();nav.replaceChildren();
+  for(let i=0;i<60;i++){const tick=document.createElement("span");tick.className=`dial-tick${i%10===0?" dial-tick-major":""}`;tick.style.setProperty("--tick-angle",`${i*6}deg`);ticks.append(tick);}
+  ring.replaceChildren(ticks);
+  dialCategories.forEach((category,index)=>{
+    const position=document.createElement("div");position.className="dial-position";position.style.setProperty("--item-angle",`${index*60}deg`);
+    const label=dialLabel(category);
+    const button=document.createElement("button");button.type="button";button.className="dial-item";button.dataset.category=category.id;button.setAttribute("aria-label",label);
+    button.innerHTML=`<span class="dial-item-content"><svg viewBox="0 0 24 24" aria-hidden="true">${icons[category.icon]}</svg><span>${label}</span></span>`;
+    button.addEventListener("click",()=>{if(dialMoved){dialMoved=false;return;}openDialCategory(category.id);});
+    position.append(button);ring.append(position);
+    const access=document.createElement("button");access.type="button";access.className="dial-access-button";access.dataset.category=category.id;access.textContent=label;access.addEventListener("click",()=>openDialCategory(category.id));nav.append(access);
+  });
+  $("#dialSelect").textContent=dialText("select");
+  $("#dialHint").textContent=dialText("hint");
+  $("#dialHome").textContent=dialText("all");
+  updateDialDisplay();
+}
+function selectedDialCategory(){return dialCategories[dialIndex];}
+function updateDialDisplay(){
+  const category=selectedDialCategory();
+  const changed=dialDisplayedCategory!==""&&category.id!==dialDisplayedCategory;
+  dialDisplayedCategory=category.id;
+  $("#dialRing").style.setProperty("--dial-angle",`${dialAngle}deg`);
+  $("#dialCenterLabel").textContent=dialLabel(category);
+  $("#dialCenterTitle").textContent=dialText(category.id);
+  $("#dialCenterDescription").textContent=dialText(`${category.id}Desc`);
+  $("#dialCenterIcon").innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${icons[category.icon]}</svg>`;
+  $$(".dial-item").forEach(button=>{
+    const active=button.dataset.category===category.id;
+    button.classList.toggle("is-active",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
+  $$(".dial-access-button").forEach(button=>button.setAttribute("aria-current",String(button.dataset.category===category.id)));
+  const center=$(".dial-center");
+  if(changed&&preferences.animations){
+    center.classList.remove("is-changing");void center.offsetWidth;center.classList.add("is-changing");
+    clearTimeout(dialCenterTimer);dialCenterTimer=window.setTimeout(()=>center.classList.remove("is-changing"),240);
+  }
+}
+function setDialIndex(index,animate=true,updateUrl=true){
+  if(index<0)index=0;
+  dialIndex=(index+dialCategories.length)%dialCategories.length;
+  const turns=Math.round((dialAngle+dialIndex*60)/360);
+  dialAngle=-dialIndex*60+turns*360;
+  $("#dialRing").classList.toggle("is-snapping",animate);
+  updateDialDisplay();
+  scheduleDialSnapEnd();
+  if(updateUrl&&!dialDragging)history.replaceState({...history.state,dialCategory:selectedDialCategory().id},"",`#dial-${selectedDialCategory().id}`);
+}
+function rotateDialBySteps(steps){
+  const next=(dialIndex+steps+dialCategories.length)%dialCategories.length;
+  setDialIndex(next,true);
+}
+function snapDial(velocity=0){
+  const projected=dialAngle+Math.max(-30,Math.min(30,velocity*170));
+  const index=((Math.round(-projected/60)%6)+6)%6;
+  const turns=Math.round((projected+index*60)/360);
+  dialIndex=index;dialAngle=-index*60+turns*360;
+  $("#dialRing").classList.add("is-snapping");
+  updateDialDisplay();
+  scheduleDialSnapEnd();
+  history.replaceState({...history.state,dialCategory:selectedDialCategory().id},"",`#dial-${selectedDialCategory().id}`);
+}
+function categoryFeatures(id){
+  const category=dialCategories.find(item=>item.id===id);
+  return category?.features.map(featureId=>featureDefs.find(def=>def[1]===featureId)).filter(Boolean)||[];
+}
+function openDialCategory(id,{fromHistory=false,scroll=true}={}){
+  const category=dialCategories.find(item=>item.id===id)||dialCategories[0];
+  if(!fromHistory)history.pushState({compivoxCategory:category.id,dialCategory:category.id},"",`#category-${category.id}`);
+  const index=dialCategories.indexOf(category);setDialIndex(index,true,false);
+  $("#dialCategoryPanel").hidden=false;
+  $(".hero").classList.add("category-open");
+  $("#dialPanelKicker").textContent=`${String(index+1).padStart(2,"0")} / ${dialLabel(category)}`;
+  $("#dialPanelTitle").textContent=dialText(category.id);
+  const list=$("#dialFeatureList");list.replaceChildren();
+  if(category.id==="results"){
+    [["previous","results"],["saved","results"],["share","results"]].forEach(([label,action])=>{
+      const button=document.createElement("button");button.type="button";button.className="dial-feature-button";
+      button.innerHTML=`<span class="dial-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${icons[category.icon]}</svg></span><span>${dialText(label)}</span><span aria-hidden="true">›</span>`;
+      button.addEventListener("click",()=>{
+        $("#results").scrollIntoView({behavior:preferences.reduceMotion?"auto":"smooth",block:"start"});
+        if(action==="results"&&label==="share"){
+          window.setTimeout(()=>$(".result-share")?.focus(),300);
+        }else window.setTimeout(()=>$("#resultsList").focus?.(),300);
+      });
+      list.append(button);
+    });
+  }else{
+    for(const def of categoryFeatures(category.id)){
+      const button=document.createElement("button");button.type="button";button.className="dial-feature-button";button.dataset.feature=def[1];
+      button.innerHTML=`<span class="dial-feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${icons[def[4]]}</svg></span><span><strong></strong><small></small></span><span aria-hidden="true">›</span>`;
+      $("strong",button).textContent=t(def[2]);$("small",button).textContent=t(def[3]);
+      button.addEventListener("click",()=>openTest({group:def[0],id:def[1],title:def[2],desc:def[3]}));
+      list.append(button);
+    }
+  }
+  updateDialDisplay();
+  if(scroll)window.setTimeout(()=>$("#dialCategoryPanel").scrollIntoView({behavior:preferences.reduceMotion?"auto":"smooth",block:"start"}),40);
+}
+function showDialHome({fromHistory=false}={}){
+  if(!fromHistory)history.pushState({dialCategory:selectedDialCategory().id},"","#home");
+  $("#dialCategoryPanel").hidden=true;$(".hero").classList.remove("category-open");
+  $("#home").scrollIntoView({behavior:preferences.reduceMotion?"auto":"smooth",block:"start"});
+}
+function restoreDialRoute(){
+  const isTestRoute=/^#test-[a-z-]+$/.test(location.hash);
+  if(dialog.open&&!isTestRoute)closeDialog({fromHistory:true});
+  const match=location.hash.match(/^#(?:dial|category)-([a-z]+)$/);
+  if(match){
+    if(location.hash.startsWith("#category-"))openDialCategory(match[1],{fromHistory:true,scroll:true});
+    else {
+      setDialIndex(dialCategories.findIndex(item=>item.id===match[1]),false,false);
+      $("#dialCategoryPanel").hidden=true;$(".hero").classList.remove("category-open");
+    }
+    return;
+  }
+  const test=location.hash.match(/^#test-([a-z-]+)$/);
+  if(test){
+    const def=featureDefs.find(item=>item[1]===test[1]);
+    if(def&&!dialog.open){
+      const category=dialCategories.find(item=>item.features.includes(def[1]));
+      if(category)setDialIndex(dialCategories.indexOf(category),false,false);
+      openTest({group:def[0],id:def[1],title:def[2],desc:def[3]},{restore:true});
+    }
+    return;
+  }
+  if(dialog.open)closeDialog({fromHistory:true});
+  if(location.hash==="#home"||!location.hash){$("#dialCategoryPanel").hidden=true;$(".hero").classList.remove("category-open");}
+  const sectionCategory={network:"network",device:"device",nfc:"nfc",results:"results"};
+  const section=location.hash.slice(1);
+  if(sectionCategory[section]){setDialIndex(dialCategories.findIndex(item=>item.id===sectionCategory[section]),false,false);$("#dialCategoryPanel").hidden=true;$(".hero").classList.remove("category-open");}
 }
 function renderAccess() {
   const params=new URLSearchParams(location.search);
@@ -377,17 +530,20 @@ function makeMeter() {
   wrap.innerHTML="<svg class='meter' viewBox='0 0 240 150' role='img' aria-label='Speed test meter'><defs><linearGradient id='meterGradient' x1='0' x2='1'><stop stop-color='#1747C8'/><stop offset='.55' stop-color='#2477E8'/><stop offset='1' stop-color='#00C5E8'/></linearGradient></defs><path d='M35 119a85 85 0 0 1 170 0' fill='none' stroke='#DCE5F3' stroke-width='12' stroke-linecap='round'/><path class='meter-arc' d='M35 119a85 85 0 0 1 170 0'/><text class='meter-value' x='120' y='93'>—</text><text class='meter-unit' x='120' y='114'>Mbps</text></svg>";
   $("#toolFields").append(wrap);return wrap.querySelector(".meter-value");
 }
-function openTest(def) {
+function openTest(def,{restore=false}={}) {
+  if(!restore)history.pushState({compivoxTest:def.id,dialCategory:selectedDialCategory().id},"",`#test-${def.id}`);
   current=def;activeController?.abort();activeController=new AbortController();
   clearResults();$("#dialogCategory").textContent=t(def.group==="network"?"networkKicker":def.group==="device"?"deviceKicker":"nfcKicker");
-  setAssemblyText($("#dialogTitle"),t(def.title));$("#dialogDescription").textContent=t(def.desc);
+  setFlowText($("#dialogTitle"),t(def.title));$("#dialogDescription").textContent=t(def.desc);
+  $("#dialogTitle").classList.remove("flow-complete","flow-entering");$("#dialogTitle").classList.add("flow-target","flow-pending");
+  $("#dialogDescription").classList.remove("flow-complete","flow-entering");$("#dialogDescription").classList.add("flow-target","flow-pending");
   $("#progressTrack").hidden=true;$("#progressBar").style.width="0";$("#shareResult").disabled=true;$("#downloadResult").disabled=true;$("#copyResult").disabled=true;
   $("#runTest").disabled=false;$("#runTest span").textContent=t("startTest");setStatus(t("ready"));
   $("#finePrint").textContent="";stopLive?.();stopLive=null;
   addControls(def.id);
   if(def.id==="nfc-scan")setStatus(window.isSecureContext&&typeof window.NDEFReader==="function"?t("nfcReady"):t("nfcUnavailable"));
   if(!dialog.open)dialog.showModal();
-  startAssembly($("#dialogTitle"));
+  startFlow($("#dialogTitle"));startFlow($("#dialogDescription"));
 }
 function addControls(id) {
   if(id==="ip")$("#finePrint").textContent=t("ipProviderNotice");
@@ -798,10 +954,19 @@ async function copyResult(){
   if(!navigator.clipboard?.writeText)throw Error("clipboardUnavailable");
   await navigator.clipboard.writeText(text);setStatus(t("copied"));
 }
-function closeDialog(){
+function closeDialog({fromHistory=false}={}){
+  let fallbackCategory=null;
+  if(!fromHistory){
+    if(history.state?.compivoxTest)history.back();
+    else if(/^#test-[a-z-]+$/.test(location.hash)){
+      fallbackCategory=dialCategories.find(item=>item.features.includes(current?.id))||dialCategories[0];
+      history.replaceState({...history.state,dialCategory:fallbackCategory.id},"",`#category-${fallbackCategory.id}`);
+    }
+  }
   activeController?.abort();activeController=null;stopLive?.();stopLive=null;
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
   if(dialog.open)dialog.close();current=null;
+  if(fallbackCategory)openDialCategory(fallbackCategory.id,{fromHistory:true,scroll:true});
 }
 function intro() {
   const el=$("#intro"),bar=$("#introProgress");if(!el)return;
@@ -840,15 +1005,74 @@ $("#downloadResult").addEventListener("click",()=>downloadShareImage().catch(()=
 $("#copyResult").addEventListener("click",()=>copyResult().catch(()=>setStatus(t("shareFailed"))));
 $("#closeDialog").addEventListener("click",closeDialog);$("#backHome").addEventListener("click",closeDialog);
 dialog.addEventListener("click",e=>{if(e.target===dialog)closeDialog();});
+dialog.addEventListener("cancel",e=>{e.preventDefault();closeDialog();});
 dialog.addEventListener("close",()=>{activeController?.abort();stopLive?.();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});});
 $("#finePrint").addEventListener("click",()=>{});
 monitorConnection();
-trMarkup();renderCards();intro();
+trMarkup();renderCards();
+$("#dialSelect").addEventListener("click",()=>{if(dialMoved){dialMoved=false;return;}openDialCategory(selectedDialCategory().id);});
+$("#dialHome").addEventListener("click",()=>showDialHome());
+dial.addEventListener("pointerdown",event=>{
+  if(event.button!==undefined&&event.button!==0)return;
+  const bounds=dial.getBoundingClientRect(),cx=bounds.left+bounds.width/2,cy=bounds.top+bounds.height/2;
+  dialDragging=true;dialMoved=false;dialVelocity=0;dialLastMoveTime=performance.now();
+  $("#dialRing").classList.add("is-dragging");
+  dialLastPointerAngle=Math.atan2(event.clientY-cy,event.clientX-cx)*180/Math.PI;
+  $("#dialRing").classList.remove("is-snapping");
+  dial.setPointerCapture(event.pointerId);
+});
+dial.addEventListener("pointermove",event=>{
+  if(!dialDragging||!dial.hasPointerCapture(event.pointerId))return;
+  const bounds=dial.getBoundingClientRect(),cx=bounds.left+bounds.width/2,cy=bounds.top+bounds.height/2;
+  const pointerAngle=Math.atan2(event.clientY-cy,event.clientX-cx)*180/Math.PI;
+  let delta=pointerAngle-dialLastPointerAngle;
+  if(delta>180)delta-=360;if(delta< -180)delta+=360;
+  if(Math.abs(delta)>0.05){
+    dialMoved=true;dialAngle+=delta;
+    const now=performance.now(),elapsed=Math.max(1,now-dialLastMoveTime);
+    dialVelocity=delta/elapsed;dialLastMoveTime=now;dialLastPointerAngle=pointerAngle;
+    dialIndex=((Math.round(-dialAngle/60)%6)+6)%6;updateDialDisplay();
+  }
+});
+const finishDialDrag=event=>{
+  if(!dialDragging)return;
+  dialDragging=false;
+  $("#dialRing").classList.remove("is-dragging");
+  dialVelocity*=Math.exp(-Math.max(0,performance.now()-dialLastMoveTime)/80);
+  if(dial.hasPointerCapture(event.pointerId))dial.releasePointerCapture(event.pointerId);
+  if(dialMoved){snapDial(dialVelocity);window.setTimeout(()=>{dialMoved=false;},0);}
+};
+dial.addEventListener("pointerup",finishDialDrag);
+dial.addEventListener("pointercancel",finishDialDrag);
+dial.addEventListener("lostpointercapture",()=>{if(dialDragging){dialDragging=false;snapDial(0);}});
+dial.addEventListener("click",event=>{if(dialMoved){event.preventDefault();event.stopPropagation();dialMoved=false;}},true);
+dial.addEventListener("wheel",event=>{
+  if(!dial.matches(":hover")&&document.activeElement!==dial)return;
+  event.preventDefault();dialWheelRemainder+=event.deltaY||event.deltaX;
+  const steps=Math.trunc(dialWheelRemainder/55);
+  if(steps){dialWheelRemainder-=steps*55;rotateDialBySteps(steps);}
+},{passive:false});
+dial.addEventListener("keydown",event=>{
+  if(event.key==="ArrowRight"||event.key==="ArrowDown"){event.preventDefault();rotateDialBySteps(1);}
+  else if(event.key==="ArrowLeft"||event.key==="ArrowUp"){event.preventDefault();rotateDialBySteps(-1);}
+  else if(event.key==="Enter"||event.key===" "){if(event.target.closest("button"))return;event.preventDefault();openDialCategory(selectedDialCategory().id);}
+  else if(event.key==="Escape"&&!$("#dialCategoryPanel").hidden){event.preventDefault();showDialHome();}
+});
+window.addEventListener("popstate",restoreDialRoute);
+window.addEventListener("hashchange",restoreDialRoute);
+window.addEventListener("keydown",event=>{
+  if(event.key!=="Escape")return;
+  if(dialog.open){event.preventDefault();event.stopPropagation();closeDialog();return;}
+  if(!$("#dialCategoryPanel").hidden){event.preventDefault();showDialHome();}
+},true);
+restoreDialRoute();
+markFlowTargets();
+intro();
 
 // Keep live device listeners scoped to the corresponding open diagnostic.
 const originalOpenTest=openTest;
-openTest=function(def){
-  originalOpenTest(def);
+openTest=function(def,options){
+  originalOpenTest(def,options);
   if(def.id==="orientation"){
     const onChange=()=>{measured.orientationChanges++;if(dialog.open&&current?.id==="orientation"){const type=screen.orientation?.type||(innerHeight>=innerWidth?"portrait":"landscape");$("#resultGrid").replaceChildren();addRows([[t("orientation"),t(type.startsWith("portrait")?"portrait":"landscape")],[t("angle"),`${screen.orientation?.angle??window.orientation??0}°`],[t("changes"),String(measured.orientationChanges)]]);}};
     screen.orientation?.addEventListener?.("change",onChange);window.addEventListener("orientationchange",onChange);stopLive=()=>{screen.orientation?.removeEventListener?.("change",onChange);window.removeEventListener("orientationchange",onChange);};

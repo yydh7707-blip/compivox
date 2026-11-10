@@ -58,15 +58,35 @@
         <h1>COMPI VOX</h1>
         <p class="hero-line" data-t="heroLine">Check your device.<br>Understand your connection.</p>
         <p class="hero-note" data-t="heroNote">A considered collection of device and network checks, built around real measurements.</p>
+      </div>
+      <div class="dial-layout">
+        <div class="rotary-dial" id="rotaryDial" role="group" tabindex="0" aria-label="Diagnostic category rotary dial" aria-describedby="dialHint">
+          <div class="dial-face" aria-hidden="true">
+            <div class="dial-ring" id="dialRing">
+              <div class="dial-ticks" id="dialTicks"></div>
+            </div>
+            <span class="dial-pointer"></span>
+          </div>
+          <div class="dial-center" aria-live="polite">
+            <span class="dial-center-icon" id="dialCenterIcon" aria-hidden="true"></span>
+            <p class="dial-overline" id="dialCenterLabel">NETWORK</p>
+            <h2 id="dialCenterTitle">Internet &amp; connection</h2>
+            <p id="dialCenterDescription">Explore network diagnostic tools.</p>
+            <button type="button" class="button button-primary dial-select" id="dialSelect">Explore category <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+        <p class="dial-hint" id="dialHint">Drag to rotate · Scroll or use ← → · Enter to select</p>
+        <nav class="dial-access-list" id="dialAccessList" aria-label="Diagnostic categories"></nav>
+        <section class="dial-category-panel" id="dialCategoryPanel" hidden aria-labelledby="dialPanelTitle">
+          <div class="dial-panel-heading">
+            <div><p class="section-kicker" id="dialPanelKicker"></p><h2 id="dialPanelTitle"></h2></div>
+            <button type="button" class="button button-secondary" id="dialHome">All categories</button>
+          </div>
+          <div class="dial-feature-list" id="dialFeatureList"></div>
+        </section>
         <div class="hero-actions">
-          <a class="button button-primary" href="#network"><span data-t="exploreNetwork">Explore diagnostics</span><span aria-hidden="true">↗</span></a>
           <span class="privacy-note"><span class="privacy-dot"></span><span data-t="privacyNote">No account. No invented results.</span></span>
         </div>
-      </div>
-      <div class="hero-orbit" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-        <div class="orbit-core"><img src="./assets/icon.svg" alt=""></div>
-        <span class="orbit-chip chip-one">DEVICE</span><span class="orbit-chip chip-two">NETWORK</span>
       </div>
       <div class="hero-foot"><span data-t="platformNote">Browser-based diagnostics</span><span>COMPIVOX / 01</span></div>
     </section>
@@ -111,7 +131,7 @@
         <div class="results-toolbar">
           <button class="button button-secondary" id="clearResultsBtn" type="button" data-t="clearResults">Clear saved results</button>
         </div>
-        <div class="results-list" id="resultsList"></div>
+        <div class="results-list" id="resultsList" tabindex="-1"></div>
       </div>
     </section>
 
