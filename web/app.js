@@ -90,7 +90,7 @@ const featureDefs = [
 ];
 const dnsTypes = {A:1,AAAA:28,CNAME:5,MX:15,TXT:16,NS:2};
 const colorNames = ["keyRed","keyGreen","keyBlue","keyWhite","keyBlack","keyGray","keyGradient"];
-const colorValues = ["#ff0000","#00c000","#0000ff","#ffffff","#000000","#808080","linear-gradient(110deg,#f8e5f2,#dcc8f5 36%,#c9e9fa 72%,#bdeef2)"];
+const colorValues = ["#ff0000","#00c000","#0000ff","#ffffff","#000000","#808080","linear-gradient(110deg,#eaf1ff,#789bff 42%,#00c5e8)"];
 const NFC_TAGS = {
   CVX001: {name:"Compivox Tag 001",url:"https://compivox.xyz/?source=nfc&tag=CVX001",description:"Static example tag configuration",registrationState:"Configured"},
   CVX002: {name:"Compivox Tag 002",url:"https://compivox.xyz/?source=nfc&tag=CVX002",description:"Static example tag configuration",registrationState:"Configured"}
@@ -183,6 +183,12 @@ function renderResultsPage(){
       </article>
     `;
   }).join("");
+  list.querySelectorAll(".result-card").forEach((element,index)=>{
+    element.classList.add("motion-reveal");
+    element.style.setProperty("--reveal-delay",`${Math.min(index,5)*65}ms`);
+    if(motionObserver){motionObserver.observe(element);motionObserver.observe(element.querySelector("h3"));}
+    else if(!("IntersectionObserver" in window))element.classList.add("is-visible");
+  });
 
   list.querySelectorAll(".result-delete").forEach(button => {
     button.addEventListener("click", () => {
@@ -214,10 +220,17 @@ function renderSettingsPage(){
 }
 let current = null, activeController = null, stopLive = null, introTimer = null;
 const dialog = $("#testDialog");
+const assemblySelector = ".hero h1, .hero-line, .hero-note, .section-heading h2, .section-heading > p, .server-note, #accessNotice strong, #accessDescription, #dialogTitle, .result-card h3";
+let motionObserver = null;
+const assemblyRunIds = new WeakMap();
 
 function trMarkup() {
   document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
-  $$("[data-t]").forEach(el => { const val=t(el.dataset.t); if(el.tagName==="OPTION") el.textContent=val; else el.textContent=val; });
+  $$("[data-t]").forEach(el => {
+    const val=t(el.dataset.t);
+    if(el.matches(assemblySelector)&&el.classList.contains("is-assembled")){setAssemblyText(el,val);el.classList.add("is-assembled");}
+    else el.textContent=val;
+  });
   $$("[data-t-aria]").forEach(el => el.setAttribute("aria-label",t(el.dataset.tAria)));
   $("#language").value = lang;
   renderCards();
@@ -226,9 +239,83 @@ function trMarkup() {
   renderSettingsPage();
   if(current) {
     $("#dialogCategory").textContent=t(current.group==="network"?"networkKicker":current.group==="device"?"deviceKicker":"nfcKicker");
-    $("#dialogTitle").textContent=t(current.title);
+    setAssemblyText($("#dialogTitle"),t(current.title));
     $("#dialogDescription").textContent=t(current.desc);
   }
+}
+function setAssemblyText(element,text=element.textContent) {
+  assemblyRunIds.set(element,(assemblyRunIds.get(element)||0)+1);
+  const value=String(text ?? "");
+  element.replaceChildren();
+  element.setAttribute("aria-label",value.replace(/\s+/g," ").trim());
+  const fragment=document.createDocumentFragment();
+  let word="",index=0;
+  const appendWord=()=>{
+    if(!word)return;
+    const wrapper=document.createElement("span");
+    wrapper.className="assembly-word";
+    for(const character of word){
+      const letter=document.createElement("span");
+      letter.className="assembly-letter";
+      letter.setAttribute("aria-hidden","true");
+      letter.textContent=character;
+      const phase=index++;
+      const angle=phase*2.399;
+      letter.style.setProperty("--flight-x",`${Math.round(Math.cos(angle)*44)}px`);
+      letter.style.setProperty("--flight-y",`${Math.round(Math.sin(angle)*32)}px`);
+      letter.style.setProperty("--flight-z",`${-180-(phase%4)*72}px`);
+      letter.style.setProperty("--flight-rotate",`${Math.round(Math.sin(angle)*30)}deg`);
+      letter.style.setProperty("--letter-delay",`${Math.min(phase*18,420)}ms`);
+      letter.style.setProperty("--reduced-delay",`${Math.min(phase*5,90)}ms`);
+      wrapper.append(letter);
+    }
+    fragment.append(wrapper);
+    word="";
+  };
+  for(const character of value){
+    if(character==="\n"){appendWord();fragment.append(document.createElement("br"));index+=2;}
+    else if(/\s/.test(character)){appendWord();fragment.append(document.createTextNode(character));index+=2;}
+    else if(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(character)){appendWord();word=character;appendWord();}
+    else word+=character;
+  }
+  appendWord();
+  element.append(fragment);
+  element.classList.remove("is-assembled","is-assembling");
+}
+function startAssembly(element) {
+  if(!element.isConnected||element.classList.contains("is-assembled"))return;
+  if(!element.querySelector(".assembly-letter"))setAssemblyText(element);
+  const runId=(assemblyRunIds.get(element)||0)+1;
+  assemblyRunIds.set(element,runId);
+  element.classList.add("is-assembling");
+  requestAnimationFrame(()=>element.classList.add("is-assembled"));
+  const duration=Math.min(1300,Math.max(820,520+element.querySelectorAll(".assembly-letter").length*18+500));
+  window.setTimeout(()=>{if(assemblyRunIds.get(element)===runId)element.classList.remove("is-assembling");},duration+100);
+}
+function startMotion() {
+  const reduced=!preferences.animations;
+  const targets=$$(assemblySelector);
+  $$(".feature-card, .result-card, .settings-card, .access-notice, .test-dialog .tool-fields, .test-dialog .result-grid").forEach((element,index)=>{
+    element.classList.add("motion-reveal");
+    element.style.setProperty("--reveal-delay",`${Math.min(index%6,5)*65}ms`);
+  });
+  if(reduced){targets.forEach(element=>element.classList.add("is-assembled"));$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;}
+  if(!("IntersectionObserver" in window)){
+    targets.forEach(startAssembly);$$(".motion-reveal").forEach(element=>element.classList.add("is-visible"));return;
+  }
+  motionObserver=new IntersectionObserver(entries=>{
+    for(const entry of entries){
+      if(!entry.isIntersecting)continue;
+      const element=entry.target;
+      if(element.matches(assemblySelector))startAssembly(element);
+      else element.classList.add("is-visible");
+      motionObserver.unobserve(element);
+    }
+  },{threshold:.16,rootMargin:"0px 0px -36px 0px"});
+  targets.forEach(element=>{
+    if(!element.classList.contains("is-assembled"))motionObserver.observe(element);
+  });
+  $$(".motion-reveal").forEach(element=>motionObserver.observe(element));
 }
 function renderCards() {
   for(const [group,id,title,desc,icon] of featureDefs) {
@@ -282,24 +369,25 @@ function addRow(label,value,privacy=false) {
 }
 function addRows(rows) { for(const [label,value,privacy] of rows)addRow(label,value,privacy); }
 function clearResults() { $("#resultGrid").replaceChildren(); $("#toolFields").replaceChildren(); $("#finePrint").textContent=""; }
-function setStatus(text){$("#testStatus").textContent=text;}
+function setStatus(text){const status=$("#testStatus");status.textContent=text;status.classList.toggle("is-running",$("#runTest").disabled);}
 function progress(value){const track=$("#progressTrack"),bar=$("#progressBar");track.hidden=false;bar.style.width=`${Math.max(0,Math.min(100,value))}%`;}
-function finishStatus(message=t("complete")){setStatus(message);progress(100);$("#shareResult").disabled=false;$("#downloadResult").disabled=false;$("#copyResult").disabled=false;$("#runTest").disabled=false;}
+function finishStatus(message=t("complete")){$("#runTest").disabled=false;setStatus(message);progress(100);$("#shareResult").disabled=false;$("#downloadResult").disabled=false;$("#copyResult").disabled=false;}
 function makeMeter() {
   const wrap=document.createElement("div");wrap.className="meter-wrap";
-  wrap.innerHTML="<svg class='meter' viewBox='0 0 240 150' role='img' aria-label='Speed test meter'><defs><linearGradient id='meterGradient' x1='0' x2='1'><stop stop-color='#f0cbea'/><stop offset='.55' stop-color='#cdbcf5'/><stop offset='1' stop-color='#bde8f2'/></linearGradient></defs><path d='M35 119a85 85 0 0 1 170 0' fill='none' stroke='rgba(130,115,165,.12)' stroke-width='12' stroke-linecap='round'/><path class='meter-arc' d='M35 119a85 85 0 0 1 170 0'/><text class='meter-value' x='120' y='93'>—</text><text class='meter-unit' x='120' y='114'>Mbps</text></svg>";
+  wrap.innerHTML="<svg class='meter' viewBox='0 0 240 150' role='img' aria-label='Speed test meter'><defs><linearGradient id='meterGradient' x1='0' x2='1'><stop stop-color='#1747C8'/><stop offset='.55' stop-color='#2477E8'/><stop offset='1' stop-color='#00C5E8'/></linearGradient></defs><path d='M35 119a85 85 0 0 1 170 0' fill='none' stroke='#DCE5F3' stroke-width='12' stroke-linecap='round'/><path class='meter-arc' d='M35 119a85 85 0 0 1 170 0'/><text class='meter-value' x='120' y='93'>—</text><text class='meter-unit' x='120' y='114'>Mbps</text></svg>";
   $("#toolFields").append(wrap);return wrap.querySelector(".meter-value");
 }
 function openTest(def) {
   current=def;activeController?.abort();activeController=new AbortController();
   clearResults();$("#dialogCategory").textContent=t(def.group==="network"?"networkKicker":def.group==="device"?"deviceKicker":"nfcKicker");
-  $("#dialogTitle").textContent=t(def.title);$("#dialogDescription").textContent=t(def.desc);
+  setAssemblyText($("#dialogTitle"),t(def.title));$("#dialogDescription").textContent=t(def.desc);
   $("#progressTrack").hidden=true;$("#progressBar").style.width="0";$("#shareResult").disabled=true;$("#downloadResult").disabled=true;$("#copyResult").disabled=true;
   $("#runTest").disabled=false;$("#runTest span").textContent=t("startTest");setStatus(t("ready"));
   $("#finePrint").textContent="";stopLive?.();stopLive=null;
   addControls(def.id);
   if(def.id==="nfc-scan")setStatus(window.isSecureContext&&typeof window.NDEFReader==="function"?t("nfcReady"):t("nfcUnavailable"));
   if(!dialog.open)dialog.showModal();
+  startAssembly($("#dialogTitle"));
 }
 function addControls(id) {
   if(id==="ip")$("#finePrint").textContent=t("ipProviderNotice");
@@ -313,7 +401,7 @@ function addControls(id) {
   if(id==="stability") {
     const graph=document.createElementNS("http://www.w3.org/2000/svg","svg");
     graph.setAttribute("class","stability-graph");graph.setAttribute("viewBox","0 0 360 116");graph.setAttribute("role","img");graph.setAttribute("aria-label",t("stability"));
-    graph.innerHTML="<path class='graph-grid' d='M8 20h344M8 58h344M8 96h344'/><polyline id='stabilityLine' points='' />";
+    graph.innerHTML="<defs><linearGradient id='stabilityGradient' x1='0' x2='1'><stop stop-color='#1747C8'/><stop offset='1' stop-color='#00C5E8'/></linearGradient></defs><path class='graph-grid' d='M8 20h344M8 58h344M8 96h344'/><polyline id='stabilityLine' points='' />";
     $("#toolFields").append(graph);
   }
   if(id==="color"||id==="pixel") {
@@ -349,6 +437,7 @@ function drawLatencyGraph(values) {
     return `${x},${y}`;
   }).join(" ");
   line.setAttribute("points",points);
+  if(!line.classList.contains("is-drawn"))requestAnimationFrame(()=>line.classList.add("is-drawn"));
 }
 async function fetchBounded(url,options={},ms=8000,signal=activeController?.signal) {
   const controller=new AbortController();let timedOut=false;
@@ -639,7 +728,7 @@ async function executeTest(){
   if(!current)return;const test=current;activeController?.abort();activeController=new AbortController();const signal=activeController.signal;
   $("#runTest").disabled=true;$("#shareResult").disabled=true;$("#resultGrid").replaceChildren();progress(5);setStatus(t("running"));
   try{const rows=await run(test.id);if(!dialog.open||current!==test||signal.aborted)return;if(rows)addRows(rows);const label = test.title ? t(test.title) : $("#dialogTitle").textContent;recordResult(test.group, label, rows);finishStatus(test.id==="nfc-scan"?t("keyDetected"):t("complete"));}
-  catch(error){if(error.name==="AbortError"){setStatus(t("cancelled"));return;}const known=["invalidDomain","invalidUrl","browserLimited","noSpeed","nfcUnavailable","nfcReadFailed","nfcPermission"];setStatus(known.includes(error.message)?t(error.message):t("failed"));$("#runTest").disabled=false;progress(0);}
+  catch(error){$("#runTest").disabled=false;if(error.name==="AbortError"){setStatus(t("cancelled"));return;}const known=["invalidDomain","invalidUrl","browserLimited","noSpeed","nfcUnavailable","nfcReadFailed","nfcPermission"];setStatus(known.includes(error.message)?t(error.message):t("failed"));progress(0);}
 }
 async function share() {
   const text=buildShareText();
@@ -682,19 +771,19 @@ function createShareImage(title=$("#dialogTitle")?.textContent||t("resultsTitle"
   const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=630;
   const context=canvas.getContext("2d");if(!context)throw Error("canvasUnavailable");
   const gradient=context.createLinearGradient(0,0,1200,630);
-  gradient.addColorStop(0,"#fffafd");gradient.addColorStop(.48,"#eee5f7");gradient.addColorStop(1,"#dff1f7");
+  gradient.addColorStop(0,"#ffffff");gradient.addColorStop(.48,"#eaf1ff");gradient.addColorStop(1,"#dff9ff");
   context.fillStyle=gradient;context.fillRect(0,0,canvas.width,canvas.height);
   context.fillStyle="rgba(255,255,255,.68)";context.beginPath();context.ellipse(850,90,430,200,-.28,0,Math.PI*2);context.fill();
-  context.fillStyle="#766a8b";context.font="700 23px Manrope, Segoe UI, sans-serif";context.fillText("COMPI VOX",72,76);
-  context.fillStyle="#282536";context.font="600 42px Manrope, Segoe UI, sans-serif";context.fillText(String(title).slice(0,38),72,150);
-  context.fillStyle="#797486";context.font="20px Segoe UI, sans-serif";context.fillText(date.toLocaleString(),72,190);
+  context.fillStyle="#1747c8";context.font="700 23px Segoe UI, sans-serif";context.fillText("COMPI VOX",72,76);
+  context.fillStyle="#15213b";context.font="700 42px Segoe UI, sans-serif";context.fillText(String(title).slice(0,38),72,150);
+  context.fillStyle="#697792";context.font="20px Segoe UI, sans-serif";context.fillText(date.toLocaleString(),72,190);
   rows.slice(0,8).forEach(([label,value],index)=>{
     const x=72+(index%2)*540,y=230+Math.floor(index/2)*83;
     context.fillStyle="rgba(255,255,255,.76)";context.beginPath();context.roundRect(x,y,500,66,14);context.fill();
-    context.fillStyle="#797486";context.font="16px Segoe UI, sans-serif";context.fillText(String(label).slice(0,48),x+18,y+25);
-    context.fillStyle="#282536";context.font="600 20px Segoe UI, sans-serif";context.fillText(String(value).slice(0,48),x+18,y+51);
+    context.fillStyle="#697792";context.font="16px Segoe UI, sans-serif";context.fillText(String(label).slice(0,48),x+18,y+25);
+    context.fillStyle="#15213b";context.font="600 20px Segoe UI, sans-serif";context.fillText(String(value).slice(0,48),x+18,y+51);
   });
-  context.fillStyle="#8b8299";context.font="15px Segoe UI, sans-serif";context.fillText("Measured in your browser · COMPI VOX",72,596);
+  context.fillStyle="#697792";context.font="15px Segoe UI, sans-serif";context.fillText("Measured in your browser · COMPI VOX",72,596);
   return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error("imageUnavailable")),"image/png"));
 }
 async function downloadShareImage(result=null){
@@ -716,8 +805,8 @@ function closeDialog(){
 }
 function intro() {
   const el=$("#intro"),bar=$("#introProgress");if(!el)return;
-  const duration=3000,start=performance.now();let done=false;
-  const finish=()=>{if(done)return;done=true;bar.style.width="100%";el.classList.add("show-done");setTimeout(()=>el.classList.add("hidden"),650);};
+  const duration=matchMedia("(prefers-reduced-motion: reduce)").matches?220:720,start=performance.now();let done=false;
+  const finish=()=>{if(done)return;done=true;bar.style.width="100%";el.classList.add("show-done");setTimeout(()=>{el.classList.add("hidden");setTimeout(startMotion,260);},180);};
   const tick=now=>{if(done)return;const p=Math.min(1,(now-start)/duration);bar.style.width=`${(p*100).toFixed(1)}%`;if(p<1)requestAnimationFrame(tick);else finish();};
   introTimer=setTimeout(finish,duration+50);requestAnimationFrame(tick);
 }
