@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" fill="none">
+  <defs>
+    <linearGradient id="waveA" x1="120" y1="170" x2="1460" y2="570" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8E5F2" stop-opacity=".72"/>
+      <stop offset=".34" stop-color="#F0CBEA" stop-opacity=".73"/>
+      <stop offset=".66" stop-color="#DCC8F5" stop-opacity=".67"/>
+      <stop offset="1" stop-color="#C9E9FA" stop-opacity=".62"/>
+    </linearGradient>
+    <linearGradient id="waveB" x1="40" y1="560" x2="1510" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BDECF2" stop-opacity=".52"/>
+      <stop offset=".3" stop-color="#C9E9FA" stop-opacity=".7"/>
+      <stop offset=".58" stop-color="#DCC8F5" stop-opacity=".65"/>
+      <stop offset=".82" stop-color="#F0CBEA" stop-opacity=".62"/>
+      <stop offset="1" stop-color="#F8E5F2" stop-opacity=".48"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="50" y1="400" x2="1540" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".26" stop-color="#fff" stop-opacity=".92"/>
+      <stop offset=".52" stop-color="#fff" stop-opacity=".28"/>
+      <stop offset=".77" stop-color="#fff" stop-opacity=".86"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-15%" width="120%" height="130%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+  </defs>
+  <g filter="url(#soft)">
+    <path d="M-180 270C83 65 310 44 498 179c186 133 244 346 481 343 231-3 355-288 574-312 126-14 239 34 347 134v330c-195-174-322-194-475-117-217 109-331 328-573 288-241-40-353-337-557-362-154-19-285 96-475 252V270Z" fill="url(#waveA)"/>
+    <path d="M-180 600c241-213 434-246 614-132 187 118 255 341 481 370 237 30 377-205 593-227 124-13 239 35 343 122v333c-214-173-347-178-504-103-224 107-367 285-584 208-235-83-338-352-551-371-138-12-261 66-392 179V600Z" fill="url(#waveB)"/>
+    <path d="M-120 907c239-187 431-218 601-112 190 118 263 309 476 339 232 33 379-176 591-202 126-15 245 30 353 117v245H-120V907Z" fill="url(#waveA)" opacity=".67"/>
+  </g>
+  <path d="M-38 418c234-195 410-225 570-112 157 111 244 303 448 335 216 34 367-179 561-220 121-26 240 0 358 78" stroke="url(#shine)" stroke-width="24" stroke-linecap="round" opacity=".58"/>
+  <path d="M-38 419c234-188 407-217 564-107 159 113 246 306 451 338 218 34 369-181 563-222 120-26 238 0 356 77" stroke="#fff" stroke-opacity=".62" stroke-width="3" stroke-linecap="round"/>
+  <path d="M-25 745c229-169 397-190 552-87 175 116 262 282 464 312 221 32 367-152 564-189 118-22 225 1 338 62" stroke="#fff" stroke-opacity=".42" stroke-width="13" stroke-linecap="round"/>
+</svg>

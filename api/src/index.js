@@ -278,8 +278,8 @@ async function handle(request, env) {
     return proxy(request, env, bodyText, action && request.method === "POST" ? action : undefined);
   }
 
-  if (!configReady(env)) return error("configuration_error", 503);
   if (url.pathname.startsWith("/downloads/")) {
+    if (!configReady(env)) return error("configuration_error", 503);
     if (!["GET", "HEAD"].includes(request.method)) return error("method_not_allowed", 405);
     return proxy(request, env);
   }
@@ -301,7 +301,7 @@ async function handle(request, env) {
       "frame-src https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data:",
-      "connect-src 'self' https://challenges.cloudflare.com",
+      "connect-src 'self' https://challenges.cloudflare.com https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://speed.cloudflare.com https://cloudflare-dns.com https://dns.google https://dns.quad9.net",
       "base-uri 'none'",
       "form-action 'self'",
       "frame-ancestors 'none'",

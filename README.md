@@ -1,14 +1,33 @@
-# Compivox: KeyRush
+# COMPI VOX
 
-COMPIVOX 웹사이트와 API입니다. 기본 웹 화면은 PC와 모바일에서 플레이하는 싱글 플레이 키 입력 게임 KeyRush입니다.
+PC와 모바일 브라우저에서 기기 및 네트워크 상태를 점검하는 정적 진단 웹사이트입니다. 계정 없이 사용할 수 있으며 검사 결과와 환경설정은 현재 브라우저의 로컬 저장소에 보관됩니다.
 
 ## 구조
 
-- `web/`: KeyRush 게임 UI와 정책 페이지
-- `api/`: Cloudflare Worker, 정적 자산 라우팅, KeyRush API 및 D1 마이그레이션
-- `server/`: Render에 배포하도록 구성된 비공개 계정 API와 SQLite
+- `web/`: COMPI VOX 진단 웹사이트 (`index.html`, `app.js`, `styles.css`)
+- `api/`: Cloudflare Worker, 정적 자산 라우팅, 기존 게임·계정 API 및 D1 마이그레이션
+- `server/`: Render에 배포하도록 구성된 기존 비공개 계정 API와 SQLite
 
 ## 로컬 확인
+
+```powershell
+cd web
+python -m http.server 8000
+```
+
+브라우저에서 `http://localhost:8000`을 엽니다. 진단 사이트는 정적 파일로 실행되며 프런트엔드 빌드 단계가 필요하지 않습니다. NFC 직접 읽기는 HTTPS와 지원 브라우저가 필요합니다.
+
+검사별 주의사항:
+
+- 속도 측정은 Cloudflare 테스트 엔드포인트와 ipify를 사용하며, 공인 IP 조회는 ipwho.is에 연결합니다. 관련 안내는 검사 전에 표시됩니다.
+- IP 주소와 대략적인 위치는 결과 기록 및 공유 이미지에서 제외됩니다. 그 외 결과와 언어·모션 설정은 브라우저에 저장됩니다.
+- NFC URL은 `?source=nfc&tag=CVX001` 형식입니다. 예시 태그 설정은 클라이언트 코드에 정적으로 정의되어 있으며, 실제 태그 등록·관리·접속 횟수 집계에는 별도 서버가 필요합니다.
+
+## 기존 API 및 계정 기능
+
+기본 웹 진입점은 KeyRush 게임에서 진단 사이트로 변경되었지만, 기존 계정·게임 API, Worker, D1 및 Render 데이터는 이 변경에서 삭제하거나 마이그레이션하지 않았습니다. 이 저장소에는 기존 기능을 위한 아래의 개발·운영 설정이 남아 있습니다.
+
+로컬 Worker와 API를 실행하려면:
 
 ```powershell
 cd api
@@ -17,17 +36,9 @@ npm run migrate:local
 npm run dev
 ```
 
-게임 화면은 Worker 정적 자산으로 제공되며, 게임 계정·공식 맵·플레이 기록은 로컬 D1에 저장됩니다. 브라우저 번들은 `web` 폴더에서 `npm install` 및 `npm run build`로 생성합니다.
+로컬 Worker에서 기존 계정 API를 시험하려면 `api/.dev.vars`에 개발용 `ENVIRONMENT=development`, `KEYRUSH_DEV_ORIGINS`와 필수 Worker 비밀값을 설정합니다. 실제 비밀값을 저장소에 커밋하지 마세요.
 
-로컬 Worker에서 계정 가입 및 API를 시험하려면 `api/.dev.vars`에 개발용 `ENVIRONMENT=development`, `KEYRUSH_DEV_ORIGINS`와 필수 Worker 비밀값을 설정합니다. 실제 비밀값을 저장소에 커밋하지 마세요.
-
-```powershell
-cd web
-npm install
-npm run build
-```
-
-## 계정 및 공식 맵 관리
+기존 계정 및 공식 맵 관리:
 
 - 가입 계정은 플레이 기록을 저장하고 Keyboard 및 Touch 랭킹에 참가합니다. 점수는 완료된 입력 이벤트를 서버에서 검증해 계산합니다.
 - 맵 생성·수정·공개·삭제와 비공개 맵 테스트는 서버가 소유자 권한을 확인합니다. 삭제한 맵은 기록의 참조를 유지하기 위해 보관 처리되고 공개 랭킹에서는 제외됩니다.
